@@ -59,6 +59,7 @@ jobs:
             name="$(basename "${config%.*}")"
             echo "Generating page for $config"
             uvx ewt-gen --dev "$config" \
+              -t "$name" \
               -o "site/$name" \
               --publish-url "${PAGES_BASE_URL%/}/$name" \
               --fw-version "$FW_VERSION"
@@ -66,7 +67,7 @@ jobs:
 
           {
             echo '<!doctype html>'
-            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title></head><body>'
+            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
             echo '<h1>Firmware pages</h1><ul>'
             for config in "${configs[@]}"; do
               name="$(basename "${config%.*}")"
