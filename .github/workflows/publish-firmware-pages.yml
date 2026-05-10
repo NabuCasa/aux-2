@@ -28,6 +28,9 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Install ESPHome dev
+        run: uv tool install git+https://github.com/esphome/esphome.git@dev
+
       - name: Generate sites with ewt-gen
         shell: bash
         run: |
@@ -44,7 +47,7 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             echo "Generating page for $config"
-            uvx ewt-gen --pre-release "$config" -o "site/$name"
+            uvx ewt-gen "$config" -o "site/$name"
           done
 
           {
