@@ -58,7 +58,7 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             echo "Generating page for $config"
-            uvx ewt-gen==1.4.1 --dev "$config" \
+            uvx ewt-gen==1.4.2 --dev "$config" \
               -t "$name" \
               -o "site/$name" \
               --publish-url "${PAGES_BASE_URL%/}/$name" \
