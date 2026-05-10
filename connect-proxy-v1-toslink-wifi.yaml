@@ -1,0 +1,299 @@
+esphome:
+  friendly_name: Home Assistant Connect Aux-2
+  name: connect-proxy
+  name_add_mac_suffix: true
+  min_version: 2026.5.0
+  project:
+    name: Nabu Casa.Home Assistant Connect Aux-2
+    version: dev
+
+esp32:
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
+
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      # Considerably speeds up mWW at the cost of using more PSRAM.
+      CONFIG_SPIRAM_RODATA: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false  # The Proxy device has PSRAM, so this is safe
+
+wifi:
+  enable_btm: true
+  enable_rrm: true
+  power_save_mode: none
+  ap:
+    ssid: "Connect Proxy Hotspot"
+    password: "ConnectProxy123"
+
+improv_serial:
+
+logger:
+  hardware_uart: UART0
+
+api:
+
+ota:
+  - platform: esphome
+
+http_request:
+
+##### Bluetooth Proxy
+bluetooth_proxy:
+  id: proxy_bt_proxy
+
+esp32_improv:
+  id: improv_setup
+  authorizer: none  
+
+esp32_ble_tracker:
+  id: proxy_ble_tracker
+
+select:
+  - platform: template
+    name: Bluetooth Scanner Mode
+    id: scanner_mode
+    options:
+      - "Passive"
+      - "Active"
+    lambda: |-
+      if (id(proxy_ble_tracker).get_scan_active()) {
+        return {"Active"};
+      } else {
+        return {"Passive"};
+      }
+    set_action:
+      - lambda: |-
+          id(proxy_bt_proxy).bluetooth_scanner_set_mode(x == "Active");
+      - component.update: scanner_mode
+
+##### Z-Wave Proxy
+mdns:
+  services:
+    - service: "_zwave"
+      protocol: "_tcp"
+      port: 6053
+      txt:
+        protocol: "esphome"
+
+usb_host:
+  devices:
+    - id: usb_host_device_0
+      vid: 0x303A
+      pid: 0x4001
+
+usb_uart:
+  - type: CDC_ACM
+    vid: 0x303A
+    pid: 0x4001
+    channels:
+      - id: uch_1
+        baud_rate: 115200
+        buffer_size: 1024
+
+zwave_proxy:
+  id: zw_proxy
+  uart_id: uch_1
+
+##### UARTs & Serial Proxies
+uart:
+  - id: uart_rs232_left
+    tx_pin: 17
+    rx_pin: 18
+    baud_rate: 9600
+  - id: uart_rs232_right
+    tx_pin: 47
+    rx_pin: 48
+    baud_rate: 9600
+  # - id: uart_rs485
+  #   tx_pin: 4
+  #   rx_pin: 3
+  #   baud_rate: 9600
+
+serial_proxy:
+  - id: rs232_proxy_1
+    uart_id: uart_rs232_left
+    name: Left Port
+    port_type: RS232
+  - id: rs232_proxy_2
+    uart_id: uart_rs232_right
+    name: Right Port
+    port_type: RS232
+  # - id: rs485_proxy
+  #   uart_id: uart_rs485
+  #   name: RS485 Port
+  #   port_type: RS232
+
+##### I2C Components
+i2c:
+  # Audio codec
+  - id: i2c_audio
+    scl: 16
+    sda: 15
+    frequency: 400kHz
+    scan: true
+  # Grove
+  - id: i2s_grove
+    scl: 2
+    sda: 1
+    frequency: 400kHz
+    scan: true
+
+##### Audio Components
+i2s_audio:
+  - id: i2s_bus
+    # i2s_bclk_pin: 11
+    # i2s_mclk_pin: 10
+    # i2s_lrclk_pin: 12
+    # data_out_pin: 13
+    # data_in_pin: 14
+    # spdif_pin: 40
+
+speaker:
+  # Hardware speaker output
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    sample_rate: 48000
+    i2s_dout_pin: 40
+    spdif_mode: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_bus
+    dac_type: external
+    channel: stereo
+    timeout: 2s
+    buffer_duration: 200ms
+    use_apll: true
+
+  # Virtual speakers to combine the announcement and media streams together into one output
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: i2s_audio_speaker
+    num_channels: 2
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+
+  # Virtual speakers to resample each pipeline's audio, if necessary, as the mixer speaker requires the same sample rate
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+##### Sendspin Configuration
+sendspin:
+  id: sendspin_hub
+  task_stack_in_psram: true
+
+audio:
+  codecs:
+    flac:
+      # buffer_memory: internal  # Unnecessary on an ESP32-S3; uses more internal memory
+    opus:
+      # state_memory: internal  # Unnecessary on an ESP32-S3; uses more internal memory
+      pseudostack:
+        # threadsafe: false  # Unnecessary on an ESP32-S3; prevents decoding two Opus streams simultaneously
+
+media_source:
+  - platform: audio_http
+    id: announcement_http_source
+  - platform: audio_http
+    id: media_http_source
+  - platform: sendspin
+    id: sendspin_source
+    # decode_memory: internal  # Unnecessary on an ESP32-S3; uses more internal memory
+
+media_player:
+  - platform: speaker_source
+    id: external_media_player
+    name: Media Player
+    internal: false
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 0.85
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC  # FLAC is the least processor intensive codec
+      num_channels: 1  # Stereo audio is unnecessary for announcements
+      sample_rate: 48000
+      sources:
+        - announcement_http_source
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC  # FLAC is the least processor intensive codec
+      num_channels: 2
+      sample_rate: 48000
+      sources:
+        - media_http_source
+        - sendspin_source
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 20
+          duration: 0.0s
+
+##### Other Components
+power_supply:
+  - id: led_power
+    pin: 46
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: status_light
+    name: Status Light
+    pin: 38
+    chipset: ws2812
+    rgb_order: GRB
+    num_leds: 1
+    power_supply: led_power
+    effects:
+      - strobe:
+      - addressable_rainbow:
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: factory_reset
+    name: Wipe Preferences
+    entity_category: diagnostic
+
+switch:
+  - platform: gpio
+    name: Grove Power
+    pin: 45
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+  - platform: gpio
+    name: RS485 Termination
+    pin: 21
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+  - platform: gpio
+    name: USB Device Power
+    pin: 42
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
