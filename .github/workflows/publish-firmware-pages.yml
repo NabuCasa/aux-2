@@ -44,7 +44,7 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             echo "Generating page for $config"
-            uvx --from "git+https://github.com/esphome/ewt-gen.git@add-dev-flag" ewt-gen --dev "$config" -o "site/$name"
+            uvx ewt-gen --dev "$config" -o "site/$name"
           done
 
           {
