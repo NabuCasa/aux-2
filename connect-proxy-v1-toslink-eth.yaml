@@ -117,10 +117,10 @@ uart:
     tx_pin: 47
     rx_pin: 48
     baud_rate: 9600
-  - id: uart_rs485
-    tx_pin: 4
-    rx_pin: 3
-    baud_rate: 9600
+  # - id: uart_rs485
+  #   tx_pin: 4
+  #   rx_pin: 3
+  #   baud_rate: 9600
 
 serial_proxy:
   - id: rs232_proxy_1
@@ -131,10 +131,10 @@ serial_proxy:
     uart_id: uart_rs232_right
     name: Right Port
     port_type: RS232
-  - id: rs485_proxy
-    uart_id: uart_rs485
-    name: RS485 Port
-    port_type: RS232
+  # - id: rs485_proxy
+  #   uart_id: uart_rs485
+  #   name: RS485 Port
+  #   port_type: RS232
 
 ##### I2C Components
 i2c:
