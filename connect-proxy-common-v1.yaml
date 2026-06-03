@@ -6,6 +6,19 @@ esphome:
   project:
     name: Nabu Casa.Home Assistant Connect Aux-2
     version: dev
+  on_boot:
+    # AFTER_WIFI = 200. Runs after both wifi (250) and ethernet (250) have
+    # completed setup() — both are in DISABLED state at this point — so we
+    # can safely call enable() on whichever the user selected.
+    priority: 200
+    then:
+      - if:
+          condition:
+            lambda: 'return id(use_wifi);'
+          then:
+            - lambda: 'id(wifi_component).enable();'
+          else:
+            - lambda: 'id(eth_component).enable();'
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -29,19 +42,87 @@ esp32:
       CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
       CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
 
+      # Reduce Wi-Fi memory footprint to help accommodate both wifi and ethernet enabled together
+      # CONFIG_ESP_WIFI_RX_BA_WIN: "16"  # constraint: ≤ STATIC_RX × 2
+      # CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM: "8"
+      # CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM: "4"
+
+debug:
+  update_interval: 10s
+
+sensor:
+  - platform: debug
+    free:
+      name: Heap Free Internal
+    block:
+      name: Heap Largest Free Block
+    min_free:
+      name: Heap Min Free
+    fragmentation:
+      name: Heap Fragmentation
+    psram:
+      name: Heap Free PSRAM
+  - platform: template
+    name: Heap Free DMA
+    entity_category: diagnostic
+    lambda: 'return heap_caps_get_free_size(MALLOC_CAP_DMA);'
+    update_interval: 10s
+    unit_of_measurement: B
+  - platform: template
+    name: Heap Largest DMA Block
+    entity_category: diagnostic
+    lambda: 'return heap_caps_get_largest_free_block(MALLOC_CAP_DMA);'
+    update_interval: 10s
+    unit_of_measurement: B
+
 psram:
   mode: octal
   speed: 80MHz
   ignore_not_found: false # The Proxy device has PSRAM, so this is safe
 
+external_components:
+  - source: github://pr#14255
+    components: [ethernet, network, wifi]
+    refresh: always
+
+# Restored from NVS at boot. Drives which network interface comes up via the
+# on_boot lambda above. The "Network Interface" select component updates this
+# value and reboots so the change takes effect.
+globals:
+  - id: use_wifi
+    type: bool
+    restore_value: yes
+    initial_value: 'false'  # default: ethernet active, wifi dormant
+
+network:
+  priority:
+    - ethernet
+    - wifi
+
 ethernet:
+  id: eth_component
+  enable_on_boot: false
   type: W5500
+  clock_speed: 40MHz
   clk_pin: 7
   mosi_pin: 9
   miso_pin: 8
   cs_pin: 6
   interrupt_pin: 5
   reset_pin: 39
+
+wifi:
+  id: wifi_component
+  enable_btm: true
+  enable_rrm: true
+  enable_on_boot: false
+  power_save_mode: none
+  use_psram: true
+  ap:
+    ssid: "Connect Proxy Hotspot"
+    password: "ConnectProxy123"
+
+improv_serial:
 
 logger:
   hardware_uart: UART0
@@ -63,7 +144,8 @@ esp32_ble_tracker:
 select:
   - platform: template
     name: Bluetooth Scanner Mode
-    id: scanner_mode
+    id: scanner_mode_selector
+    entity_category: config
     options:
       - "Passive"
       - "Active"
@@ -76,7 +158,41 @@ select:
     set_action:
       - lambda: |-
           id(proxy_bt_proxy).bluetooth_scanner_set_mode(x == "Active");
-      - component.update: scanner_mode
+      - component.update: scanner_mode_selector
+  - platform: template
+    name: Network Interface
+    id: network_interface_selector
+    entity_category: config
+    icon: "mdi:lan-connect"
+    options:
+      - "Ethernet"
+      - "WiFi"
+    lambda: |-
+      return id(use_wifi) ? std::string("WiFi") : std::string("Ethernet");
+    set_action:
+      - globals.set:
+          id: use_wifi
+          value: !lambda 'return x == std::string("WiFi");'
+      - lambda: 'global_preferences->sync();'
+      - delay: 500ms
+      - button.press: restart_button
+  - platform: template
+    id: audio_output_selector
+    name: Audio Output
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "Analog (PCM5122 DAC)"
+      - "SPDIF (TOSLink)"
+    on_value:
+      - router.speaker.switch_output:
+          id: audio_router_speaker
+          target_speaker: !lambda |-
+            if (x == "SPDIF (TOSLink)") {
+              return id(i2s_audio_spdif_speaker);
+            }
+            return id(i2s_audio_dac_speaker);
 
 ##### Z-Wave Proxy
 mdns:
@@ -86,12 +202,6 @@ mdns:
       port: 6053
       txt:
         protocol: "esphome"
-
-usb_host:
-  devices:
-    - id: usb_host_device_0
-      vid: 0x303A
-      pid: 0x4001
 
 usb_uart:
   - type: CDC_ACM
@@ -156,35 +266,56 @@ i2s_audio:
     i2s_bclk_pin: 11
     i2s_mclk_pin: 10
     i2s_lrclk_pin: 12
-    # data_out_pin: 13
-    # data_in_pin: 14
-    # spdif_pin: 40
 
 audio_dac:
   - platform: es8156
     id: es8156_dac
-    address: 0x08
     i2c_id: i2c_audio
+    address: 0x08
 
 speaker:
-  # Hardware speaker output
+  # Router speaker to allow user to select between the DAC and TOSLink outputs
+  - platform: router
+    id: audio_router_speaker
+    output_speakers:
+      - i2s_audio_dac_speaker
+      - i2s_audio_spdif_speaker
+    bits_per_sample: 16
+    num_channels: 2
+    sample_rate: 48000
+
+  # Hardware speaker output (via ES8156 DAC)
   - platform: i2s_audio
-    id: i2s_audio_speaker
+    id: i2s_audio_dac_speaker
     sample_rate: 48000
     i2s_dout_pin: 13
     bits_per_sample: 16bit
     i2s_audio_id: i2s_bus
     dac_type: external
     channel: stereo
-    timeout: never
+    timeout: 2s
     buffer_duration: 100ms
     audio_dac: es8156_dac
+
+  # Hardware speaker output (via TOSLink)
+  - platform: i2s_audio
+    id: i2s_audio_spdif_speaker
+    sample_rate: 48000
+    i2s_dout_pin: 40
+    spdif_mode: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_bus
+    dac_type: external
+    channel: stereo
+    timeout: 2s
+    buffer_duration: 100ms
     use_apll: true
 
   # Virtual speakers to combine the announcement and media streams together into one output
   - platform: mixer
     id: mixing_speaker
-    output_speaker: i2s_audio_speaker
+    task_stack_in_psram: true
+    output_speaker: audio_router_speaker
     num_channels: 2
     source_speakers:
       - id: announcement_mixing_input
@@ -195,11 +326,13 @@ speaker:
   # Virtual speakers to resample each pipeline's audio, if necessary, as the mixer speaker requires the same sample rate
   - platform: resampler
     id: announcement_resampling_speaker
+    task_stack_in_psram: true
     output_speaker: announcement_mixing_input
     sample_rate: 48000
     bits_per_sample: 16
   - platform: resampler
     id: media_resampling_speaker
+    task_stack_in_psram: true
     output_speaker: media_mixing_input
     sample_rate: 48000
     bits_per_sample: 16
@@ -212,20 +345,23 @@ sendspin:
 audio:
   codecs:
     flac:
-      buffer_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+      # buffer_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
     opus:
-      state_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+      # state_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
       pseudostack:
-        threadsafe: false # Unnecessary on an ESP32-S3; prevents decoding two Opus streams simultaneously
+        # threadsafe: false # Unnecessary on an ESP32-S3; prevents decoding two Opus streams simultaneously
 
 media_source:
   - platform: audio_http
     id: announcement_http_source
+    task_stack_in_psram: true
   - platform: audio_http
     id: media_http_source
+    task_stack_in_psram: true
   - platform: sendspin
     id: sendspin_source
-    decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+    task_stack_in_psram: true
+    # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
 
 media_player:
   - platform: speaker_source
@@ -237,14 +373,14 @@ media_player:
     volume_max: 0.85
     announcement_pipeline:
       speaker: announcement_resampling_speaker
-      format: FLAC # FLAC is the least processor intensive codec
-      num_channels: 1 # Stereo audio is unnecessary for announcements
+      format: FLAC  # FLAC is the least processor intensive codec
+      num_channels: 1  # Stereo audio is unnecessary for announcements
       sample_rate: 48000
       sources:
         - announcement_http_source
     media_pipeline:
       speaker: media_resampling_speaker
-      format: FLAC # FLAC is the least processor intensive codec
+      format: FLAC  # FLAC is the least processor intensive codec
       num_channels: 2
       sample_rate: 48000
       sources:
@@ -260,12 +396,6 @@ media_player:
 power_supply:
   - id: led_power
     pin: 46
-
-output:
-  # Ensure the SPDIF LED remains off
-  - platform: gpio
-    id: spdif_led
-    pin: 40
 
 light:
   - platform: esp32_rmt_led_strip
