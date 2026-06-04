@@ -199,23 +199,6 @@ select:
           id(proxy_bt_proxy).bluetooth_scanner_set_mode(x == "Active");
       - component.update: scanner_mode_selector
   - platform: template
-    name: Network Interface
-    id: network_interface_selector
-    entity_category: config
-    icon: "mdi:lan-connect"
-    options:
-      - "Ethernet"
-      - "Wi-Fi"
-    lambda: |-
-      return id(use_wifi) ? std::string("Wi-Fi") : std::string("Ethernet");
-    set_action:
-      - globals.set:
-          id: use_wifi
-          value: !lambda 'return x == std::string("Wi-Fi");'
-      - lambda: 'global_preferences->sync();'
-      - delay: 500ms
-      - button.press: restart_button
-  - platform: template
     id: audio_output_selector
     name: Audio Output
     entity_category: config
