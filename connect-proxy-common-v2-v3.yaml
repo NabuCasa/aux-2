@@ -7,18 +7,23 @@ esphome:
     name: Nabu Casa.Home Assistant Connect Aux-2
     version: dev
   on_boot:
-    # AFTER_WIFI = 200. Runs after both wifi (250) and ethernet (250) have
-    # completed setup() — both are in DISABLED state at this point — so we
-    # can safely call enable() on whichever the user selected.
+    # AFTER_WIFI = 200. Runs after wifi (250), ethernet (250), and
+    # w5500_link_monitor (250) have all completed setup() — all DISABLED.
+    # Activate exactly one interface based on the persisted use_wifi flag;
+    # the inactive component leaves SPI / the W5500 untouched so whichever
+    # wins owns the bus alone. Transitions to the other interface cross a
+    # reboot, driven by w5500_link_monitor (in Wi-Fi mode, on cable insert)
+    # or ethernet.on_disconnect (in Ethernet mode, on cable removal).
     priority: 200
     then:
       - if:
           condition:
             lambda: 'return id(use_wifi);'
           then:
-            - lambda: 'id(wifi_component).enable();'
+            - wifi.enable:
+            - w5500_link_monitor.start: link_monitor
           else:
-            - lambda: 'id(eth_component).enable();'
+            - ethernet.enable:
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -42,38 +47,7 @@ esp32:
       CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
       CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
 
-      # Reduce Wi-Fi memory footprint to help accommodate both wifi and ethernet enabled together
-      # CONFIG_ESP_WIFI_RX_BA_WIN: "16"  # constraint: ≤ STATIC_RX × 2
-      # CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM: "8"
-      # CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM: "4"
-
-debug:
-  update_interval: 10s
-
 sensor:
-  - platform: debug
-    free:
-      name: Heap Free Internal
-    block:
-      name: Heap Largest Free Block
-    min_free:
-      name: Heap Min Free
-    fragmentation:
-      name: Heap Fragmentation
-    psram:
-      name: Heap Free PSRAM
-  - platform: template
-    name: Heap Free DMA
-    entity_category: diagnostic
-    lambda: 'return heap_caps_get_free_size(MALLOC_CAP_DMA);'
-    update_interval: 10s
-    unit_of_measurement: B
-  - platform: template
-    name: Heap Largest DMA Block
-    entity_category: diagnostic
-    lambda: 'return heap_caps_get_largest_free_block(MALLOC_CAP_DMA);'
-    update_interval: 10s
-    unit_of_measurement: B
   # 3.5 mm combo-jack detect (v3+ hardware only — pin floats on v2, so the
   # auto_output_mode_switch defaults OFF). Voltage rails:
   #   ~0.00 V → analog TRS plug
@@ -109,13 +83,19 @@ sensor:
 psram:
   mode: octal
   speed: 80MHz
-  ignore_not_found: false  # The Proxy device has PSRAM, so this is safe
+  ignore_not_found: false  # Aux-2 has PSRAM, so this is safe
 
 external_components:
-  - source: github://sonocotta/esphome-pcm5122@main
+  - source: github://pr#15709
+    components: [pcm5122]
+    refresh: always
   - source: github://pr#14255
     components: [ethernet, network, wifi]
     refresh: always
+  - source:
+      type: local
+      path: components
+    components: [w5500_link_monitor]
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
@@ -142,6 +122,33 @@ ethernet:
   cs_pin: 10
   interrupt_pin: 14
   reset_pin: 39
+  # Cable unplugged while running on ethernet → reboot into wifi. The
+  # disconnect_trigger only fires after we've reached CONNECTED at least
+  # once (see ethernet_component_esp32.cpp), so initial CONNECTING-state
+  # retries on a no-cable boot don't churn this action.
+  on_disconnect:
+    - globals.set:
+        id: use_wifi
+        value: 'true'
+    - lambda: 'global_preferences->sync();'
+    - delay: 500ms
+    - button.press: restart_button
+
+# Active only on Wi-Fi-mode boots. Polls the W5500's PHYCFGR register over
+# SPI and fires on_link_up when a cable is detected, so we reboot into
+# ethernet mode. Inherits SPI host, pins, and clock speed from the ethernet
+# component above — only one of the two ever calls spi_bus_initialize() on
+# a given boot.
+w5500_link_monitor:
+  id: link_monitor
+  ethernet_id: eth_component
+  on_link_up:
+    - globals.set:
+        id: use_wifi
+        value: 'false'
+    - lambda: 'global_preferences->sync();'
+    - delay: 500ms
+    - button.press: restart_button
 
 wifi:
   id: wifi_component
@@ -198,13 +205,13 @@ select:
     icon: "mdi:lan-connect"
     options:
       - "Ethernet"
-      - "WiFi"
+      - "Wi-Fi"
     lambda: |-
-      return id(use_wifi) ? std::string("WiFi") : std::string("Ethernet");
+      return id(use_wifi) ? std::string("Wi-Fi") : std::string("Ethernet");
     set_action:
       - globals.set:
           id: use_wifi
-          value: !lambda 'return x == std::string("WiFi");'
+          value: !lambda 'return x == std::string("Wi-Fi");'
       - lambda: 'global_preferences->sync();'
       - delay: 500ms
       - button.press: restart_button
@@ -296,7 +303,7 @@ audio_dac:
     id: pcm5122_dac
     i2c_id: i2c_audio
     address: 0x4C   # Board straps ADR1=ADR2=0 (driver default is 0x4D)
-    enable_pin: 3   # Codec_XSMT (mute) -- driven through U22 buffer to PCM5122 XSMT
+    # enable_pin: 3   # Codec_XSMT (mute)
 
 speaker:
   # Router speaker to allow user to select between the DAC and TOSLink outputs
