@@ -1,20 +1,21 @@
 esphome:
   friendly_name: Home Assistant Connect Aux-2
-  name: connect-proxy
+  name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.5.0
+  min_version: 2026.6.0
   project:
     name: Nabu Casa.Home Assistant Connect Aux-2
     version: dev
   on_boot:
-    # AFTER_WIFI = 200. Runs after wifi (250), ethernet (250), and
+    # Must run before improv_serial::setup() but still after the
+    # 250-priority network components (wifi (250), ethernet (250)), and
     # w5500_link_monitor (250) have all completed setup() — all DISABLED.
     # Activate exactly one interface based on the persisted use_wifi flag;
     # the inactive component leaves SPI / the W5500 untouched so whichever
     # wins owns the bus alone. Transitions to the other interface cross a
     # reboot, driven by w5500_link_monitor (in Wi-Fi mode, on cable insert)
     # or ethernet.on_disconnect (in Ethernet mode, on cable removal).
-    priority: 200
+    priority: 205
     then:
       - if:
           condition:
@@ -86,9 +87,6 @@ psram:
   ignore_not_found: false  # Aux-2 has PSRAM, so this is safe
 
 external_components:
-  - source: github://pr#15709
-    components: [pcm5122]
-    refresh: always
   - source: github://pr#14255
     components: [ethernet, network, wifi]
     refresh: always
@@ -104,7 +102,13 @@ globals:
   - id: use_wifi
     type: bool
     restore_value: yes
-    initial_value: 'false'  # default: ethernet active, wifi dormant
+    # Default Wi-Fi on a fresh/factory-reset device so improv_serial and the AP are
+    # available immediately for provisioning (no startup wait). w5500_link_monitor
+    # runs in Wi-Fi mode and, if a cable is present, fires on_link_up on its first
+    # poll (~2s) -> sets use_wifi=false -> reboot into Ethernet. restore_value keeps
+    # the learned interface across reboots, so this initial_value only applies on the
+    # very first boot (or after a factory reset).
+    initial_value: 'true'
 
 network:
   priority:
@@ -157,11 +161,9 @@ wifi:
   enable_on_boot: false
   power_save_mode: none
   use_psram: true
-  ap:
-    ssid: "Connect Proxy Hotspot"
-    password: "ConnectProxy123"
 
 improv_serial:
+  id: improv_serial_component
 
 logger:
   hardware_uart: UART0
