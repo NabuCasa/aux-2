@@ -93,12 +93,6 @@ ethernet:
   cs_pin: 6
   interrupt_pin: 5
   reset_pin: 39
-  # In Ethernet mode Wi-Fi is disabled, so improv_serial can't provision anything.
-  # Stop its loop once Ethernet connects so the ESP Web Tools browser doesn't detect
-  # improv (and then time out provisioning). A cable pull crosses a reboot back into
-  # Wi-Fi mode, where improv's loop starts enabled again — no re-enable needed here.
-  on_connect:
-    - lambda: 'id(improv_serial_component).disable_loop();'
   # Cable unplugged while running on ethernet → reboot into wifi. The
   # disconnect_trigger only fires after we've reached CONNECTED at least
   # once (see ethernet_component_esp32.cpp), so initial CONNECTING-state
