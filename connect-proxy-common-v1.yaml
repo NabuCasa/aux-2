@@ -136,6 +136,9 @@ logger:
   hardware_uart: UART0
 
 api:
+  # Device runs standalone as a SendSpin audio device; don't reboot
+  # when no Home Assistant client is connected.
+  reboot_timeout: 0s
 
 ota:
   - platform: esphome
