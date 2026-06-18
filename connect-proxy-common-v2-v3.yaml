@@ -245,23 +245,23 @@ zwave_proxy:
 
 ##### UARTs & Serial Proxies
 uart:
-  - id: uart_rs232_left
+  - id: uart_rs232_port_1
     tx_pin: 17
     rx_pin: 18
     baud_rate: 9600
-  - id: uart_rs232_right
+  - id: uart_rs232_port_2
     tx_pin: 47
     rx_pin: 48
     baud_rate: 9600
 
 serial_proxy:
   - id: rs232_proxy_1
-    uart_id: uart_rs232_left
-    name: Left RS-232 Port
+    uart_id: uart_rs232_port_1
+    name: RS-232 Port 1
     port_type: RS232
   - id: rs232_proxy_2
-    uart_id: uart_rs232_right
-    name: Right RS-232 Port
+    uart_id: uart_rs232_port_2
+    name: RS-232 Port 2
     port_type: RS232
 
 ##### I2C Components
