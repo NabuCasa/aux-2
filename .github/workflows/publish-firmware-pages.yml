@@ -76,6 +76,33 @@ jobs:
             echo '</ul></body></html>'
           } > site/index.html
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: nc-fw-signing-staging
+          workload_identity_provider: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+
+      - name: Upload unsigned firmware for signing
+        shell: bash
+        env:
+          FW_VERSION: ${{ steps.version.outputs.version }}
+          SIGNING_BUCKET: nc-fw-signing-staging-fw-unsigned
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          for config in *.yaml; do
+            name="$(basename "${config%.*}")"
+            # ewt-gen copies firmware.factory.bin into the site as
+            # firmware-<chip>-<version>.bin; skip the app-only OTA images.
+            for fw in "site/$name"/firmware-*.bin; do
+              [[ "$fw" == *.ota.bin ]] && continue
+              dest="gs://${SIGNING_BUCKET}/${name}/${FW_VERSION}/$(basename "$fw")"
+              echo "Uploading $fw -> $dest"
+              gcloud storage cp "$fw" "$dest"
+            done
+          done
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
