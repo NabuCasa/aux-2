@@ -15,6 +15,17 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  PRODUCT: aux-2
+  # Target block for the manifest — must match the KMS key config in the
+  # signing dashboard.
+  CHIP: esp32s3
+  SIGN_SCHEME: rsa-pss-3072-sha256
+  PROJECT_ID: nc-fw-signing-staging
+  BUCKET: nc-fw-signing-staging-fw-unsigned
+  # Uses the project NUMBER, not the project ID:
+  WIF_PROVIDER: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -76,32 +87,106 @@ jobs:
             echo '</ul></body></html>'
           } > site/index.html
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          project_id: nc-fw-signing-staging
-          workload_identity_provider: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-
-      - name: Upload unsigned firmware for signing
+      # ------------------------------------------------------------------
+      # Firmware signing (staging) — stage each config's unsigned image
+      # together with a v1 build-info.json manifest, the contract the
+      # signing dashboard validates before a build may enter the approval
+      # queue. Authentication is entirely via the repository's OIDC token
+      # (WIF) — no secrets are configured in GitHub for this.
+      # ------------------------------------------------------------------
+      - name: Stage unsigned firmware for signing
         shell: bash
         env:
           FW_VERSION: ${{ steps.version.outputs.version }}
-          SIGNING_BUCKET: nc-fw-signing-staging-fw-unsigned
         run: |
           set -euo pipefail
           shopt -s nullglob
 
           for config in *.yaml; do
             name="$(basename "${config%.*}")"
+
             # ewt-gen copies firmware.factory.bin into the site as
             # firmware-<chip>-<version>.bin; skip the app-only OTA images.
+            bins=()
             for fw in "site/$name"/firmware-*.bin; do
-              [[ "$fw" == *.ota.bin ]] && continue
-              dest="gs://${SIGNING_BUCKET}/${name}/${FW_VERSION}/$(basename "$fw")"
-              echo "Uploading $fw -> $dest"
-              gcloud storage cp "$fw" "$dest"
+              [[ "$fw" == *.ota.bin ]] || bins+=("$fw")
             done
+            if [ ${#bins[@]} -ne 1 ]; then
+              echo "Expected exactly one factory image for $name, found ${#bins[@]}" >&2
+              exit 1
+            fi
+
+            stage="upload/${PRODUCT}/${FW_VERSION}/${GITHUB_SHA}/${name}"
+            mkdir -p "$stage"
+            cp "${bins[0]}" "$stage/firmware-unsigned.bin"
+
+            sha256=$(sha256sum "$stage/firmware-unsigned.bin" | cut -d' ' -f1)
+            size=$(stat -c%s "$stage/firmware-unsigned.bin")
+
+            # Built with jq so values are always correctly JSON-escaped.
+            jq -n \
+              --argjson schema_version 1 \
+              --arg product   "${PRODUCT}" \
+              --arg version   "${FW_VERSION}" \
+              --arg filename  "firmware-unsigned.bin" \
+              --arg sha256    "${sha256}" \
+              --argjson size_bytes "${size}" \
+              --arg chip      "${CHIP}" \
+              --arg scheme    "${SIGN_SCHEME}" \
+              --arg repo      "${GITHUB_REPOSITORY}" \
+              --arg ref       "${GITHUB_REF}" \
+              --arg commit    "${GITHUB_SHA}" \
+              --arg run_id    "${GITHUB_RUN_ID}" \
+              --arg run_url   "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              --arg actor     "${GITHUB_ACTOR}" \
+              --arg built_at  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{
+                schema_version: $schema_version,
+                product: $product,
+                version: $version,
+                artifact: {
+                  filename: $filename,
+                  sha256: $sha256,
+                  size_bytes: $size_bytes
+                },
+                target: {
+                  chip: $chip,
+                  secure_boot_scheme: $scheme
+                },
+                source: {
+                  repository: $repo,
+                  ref: $ref,
+                  commit: $commit,
+                  run_id: $run_id,
+                  run_url: $run_url,
+                  actor: $actor
+                },
+                built_at: $built_at
+              }' > "$stage/build-info.json"
+
+            echo "Manifest for $name:" && cat "$stage/build-info.json"
           done
+
+      - name: Authenticate to Google Cloud (WIF, no keys)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+
+      - name: Upload to unsigned bucket
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: upload
+          destination: ${{ env.BUCKET }}
+          parent: false                # don't prefix with the local dir name
+          process_gcloudignore: false
+
+      - name: Signing upload summary
+        env:
+          FW_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "Uploaded unsigned firmware to gs://${BUCKET}/${PRODUCT}/${FW_VERSION}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Awaiting review & signature in the signing dashboard." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
