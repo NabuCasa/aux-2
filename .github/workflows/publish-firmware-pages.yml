@@ -16,9 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PRODUCT: aux-2
   # Target block for the manifest — must match the KMS key config in the
-  # signing dashboard.
+  # signing dashboard. Each config file is uploaded under its own target id
+  # (the YAML basename), which must be registered in the dashboard.
   CHIP: esp32s3
   SIGN_SCHEME: rsa-pss-3072-sha256
   PROJECT_ID: nc-fw-signing-staging
@@ -105,18 +105,24 @@ jobs:
           for config in *.yaml; do
             name="$(basename "${config%.*}")"
 
-            # ewt-gen copies firmware.factory.bin into the site as
-            # firmware-<chip>-<version>.bin; skip the app-only OTA images.
-            bins=()
-            for fw in "site/$name"/firmware-*.bin; do
-              [[ "$fw" == *.ota.bin ]] || bins+=("$fw")
-            done
+            # The signable artifact is the sector-padded unsigned APP image
+            # (built with CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES disabled):
+            # Secure Boot v2 signing appends its signature block to this
+            # image, and it is what OTA installs and verifies. ewt-gen copies
+            # it into the site as firmware-<chip>-<version>.ota.bin. The
+            # factory image is a merged flash image (bootloader + partition
+            # table + app) and is NOT directly signable — the signed factory
+            # image must be reassembled around the signed app afterwards.
+            bins=( "site/$name"/firmware-*.ota.bin )
             if [ ${#bins[@]} -ne 1 ]; then
-              echo "Expected exactly one factory image for $name, found ${#bins[@]}" >&2
+              echo "Expected exactly one app image for $name, found ${#bins[@]}" >&2
               exit 1
             fi
 
-            stage="upload/${PRODUCT}/${FW_VERSION}/${GITHUB_SHA}/${name}"
+            # One directory per target id — firmware-unsigned.bin and
+            # build-info.json must be direct siblings under
+            # <target-id>/<ref-name>/<commit-sha>/.
+            stage="upload/${name}/${GITHUB_REF_NAME}/${GITHUB_SHA}"
             mkdir -p "$stage"
             cp "${bins[0]}" "$stage/firmware-unsigned.bin"
 
@@ -126,7 +132,7 @@ jobs:
             # Built with jq so values are always correctly JSON-escaped.
             jq -n \
               --argjson schema_version 1 \
-              --arg product   "${PRODUCT}" \
+              --arg product   "${name}" \
               --arg version   "${FW_VERSION}" \
               --arg filename  "firmware-unsigned.bin" \
               --arg sha256    "${sha256}" \
@@ -179,13 +185,16 @@ jobs:
           path: upload
           destination: ${{ env.BUCKET }}
           parent: false                # don't prefix with the local dir name
+          gzip: false                  # dashboard hash-gates on exact object bytes
           process_gcloudignore: false
 
       - name: Signing upload summary
-        env:
-          FW_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          echo "Uploaded unsigned firmware to gs://${BUCKET}/${PRODUCT}/${FW_VERSION}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          for config in *.yaml; do
+            name="$(basename "${config%.*}")"
+            echo "Uploaded gs://${BUCKET}/${name}/${GITHUB_REF_NAME}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
+          done
           echo "Awaiting review & signature in the signing dashboard." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Pages artifact
