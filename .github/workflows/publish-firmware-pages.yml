@@ -119,6 +119,9 @@ jobs:
           shopt -s nullglob
 
           for config in *.yaml; do
+            # ewt-gen writes a derived <config>.factory.yaml next to each
+            # config during compilation; those are not configs of their own.
+            [[ "$config" == *.factory.yaml ]] && continue
             name="$(basename "${config%.*}")"
 
             # The signable artifact is the sector-padded unsigned APP image
@@ -208,6 +211,7 @@ jobs:
         run: |
           shopt -s nullglob
           for config in *.yaml; do
+            [[ "$config" == *.factory.yaml ]] && continue
             name="$(basename "${config%.*}")"
             echo "Uploaded gs://${BUCKET}/${name}/${GITHUB_REF_NAME}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
           done
