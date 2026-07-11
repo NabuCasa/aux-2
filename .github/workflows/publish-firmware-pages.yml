@@ -140,8 +140,9 @@ jobs:
 
             # One directory per target id — firmware-unsigned.bin and
             # build-info.json must be direct siblings under
-            # <target-id>/<ref-name>/<commit-sha>/.
-            stage="upload/${name}/${GITHUB_REF_NAME}/${GITHUB_SHA}"
+            # <target-id>/<version>/<commit-sha>/, where <version> matches
+            # the manifest's version (the dashboard cross-checks this).
+            stage="upload/${name}/${FW_VERSION}/${GITHUB_SHA}"
             mkdir -p "$stage"
             cp "${bins[0]}" "$stage/firmware-unsigned.bin"
 
@@ -208,12 +209,14 @@ jobs:
           process_gcloudignore: false
 
       - name: Signing upload summary
+        env:
+          FW_VERSION: ${{ steps.version.outputs.version }}
         run: |
           shopt -s nullglob
           for config in *.yaml; do
             [[ "$config" == *.factory.yaml ]] && continue
             name="$(basename "${config%.*}")"
-            echo "Uploaded gs://${BUCKET}/${name}/${GITHUB_REF_NAME}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
+            echo "Uploaded gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
           done
           echo "Awaiting review & signature in the signing dashboard." >> "$GITHUB_STEP_SUMMARY"
 
