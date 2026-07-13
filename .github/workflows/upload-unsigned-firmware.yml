@@ -17,10 +17,6 @@ on:
   push:
     branches:
       - main
-      # TEMP: pre-merge testing only — remove before merging. A renamed
-      # workflow file is not dispatchable until it exists on the default
-      # branch, but push triggers run the pushed branch's own version.
-      - 20260709-config-updates
 
 # OIDC token minting requires id-token: write. pages: read lets
 # configure-pages resolve the site base URL that ewt-gen bakes into the
