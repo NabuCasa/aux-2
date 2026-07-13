@@ -186,9 +186,15 @@ jobs:
               echo "App image for $name is not padded to a 4 KiB boundary (${size} bytes)" >&2
               exit 1
             fi
-            uvx --from esptool espsecure signature-info-v2 "$stage/firmware-unsigned.bin" 2>&1 \
-              | grep -qi "no signature" \
-              || { echo "App image for $name already contains a signature block" >&2; exit 1; }
+            # For an unsigned image espsecure prints "Signature block 0
+            # absent/invalid" and exits 0 either way — match the marker,
+            # don't rely on the exit status.
+            sig_info="$(uvx --from esptool espsecure signature-info-v2 "$stage/firmware-unsigned.bin" 2>&1 || true)"
+            if ! grep -qi "signature block 0 absent/invalid" <<<"$sig_info"; then
+              echo "App image for $name already contains a signature block (or the check failed):" >&2
+              echo "$sig_info" >&2
+              exit 1
+            fi
 
             sha256=$(sha256sum "$stage/firmware-unsigned.bin" | cut -d' ' -f1)
 
