@@ -40,8 +40,13 @@ esp32:
     advanced:
       nvs_encryption:
         key_id: 0
+      # External-signing mode: no key here. With Secure Boot V2 (rsa3072)
+      # the public key travels in each image's signature block; binaries
+      # are signed after the build by Autograph, and
+      # publish-signed-firmware.yml verifies them against the KMS public
+      # key before publishing.
       signed_ota_verification:
-        verification_key: keys/gcp-aux2-staging-pubkey.pem
+        signing_scheme: rsa3072
       enable_ota_downgrade_protection: true
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
