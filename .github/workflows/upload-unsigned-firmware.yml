@@ -1,4 +1,16 @@
-name: Publish firmware pages
+# Builds each config's firmware and uploads the unsigned, sector-padded APP
+# image plus a build-info.json manifest to the Autograph unsigned bucket via
+# Workload Identity Federation. Signing is a human action in the Autograph
+# dashboard; after approval, publish-signed-firmware.yml assembles the factory
+# image around the signed app and deploys the firmware pages.
+#
+# This workflow deploys nothing: the site it generates as a compile by-product
+# is discarded, because a site built here would carry the UNSIGNED binaries.
+#
+# Authentication is entirely via the repository's OIDC token — no GitHub
+# secrets are configured for this workflow.
+
+name: Build & upload unsigned firmware
 
 on:
   workflow_dispatch:
@@ -6,14 +18,14 @@ on:
     branches:
       - main
 
+# OIDC token minting requires id-token: write. Everything else stays read-only.
 permissions:
   contents: read
-  pages: write
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: fw-upload-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   # Target block for the manifest — must match the KMS key config in the
@@ -33,6 +45,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Only needed for the base URL ewt-gen bakes into the compiled OTA
+      # update component (--publish-url) — the URL the signed site will be
+      # served from. This workflow does not deploy the site itself.
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
@@ -50,7 +65,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Firmware version: $version"
 
-      - name: Generate sites with ewt-gen
+      - name: Build firmware with ewt-gen
         shell: bash
         env:
           PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
@@ -65,10 +80,10 @@ jobs:
             exit 1
           fi
 
-          mkdir -p site
+          mkdir -p site boot
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
-            echo "Generating page for $config"
+            echo "Building $config"
             args=( "$config"
               -t "$name"
               -o "site/$name"
@@ -90,25 +105,35 @@ jobs:
               cp "$build_dir/firmware.ota.bin" "${config%.*}.ota.bin"
               uvx ewt-gen --dev --skip-compile "${args[@]}"
             fi
-          done
 
-          {
-            echo '<!doctype html>'
-            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
-            echo '<h1>Firmware pages</h1><ul>'
-            for config in "${configs[@]}"; do
-              name="$(basename "${config%.*}")"
-              echo "<li><a href=\"./$name/\">$name</a></li>"
-            done
-            echo '</ul></body></html>'
-          } > site/index.html
+            # Retain this build's boot components (everything flasher_args.json
+            # flashes except the app: bootloader, partition table, OTA data) so
+            # the post-sign publisher can assemble the factory image around the
+            # signed app. They must stay OUT of the signing prefix — they travel
+            # as a commit-keyed Actions artifact instead. Harvest inside the
+            # loop: the configs share a device name, so the build directory is
+            # overwritten on the next iteration.
+            build_dir="$(ls -td .esphome/build/*/build 2>/dev/null | head -1)"
+            fa="$build_dir/flasher_args.json"
+            if [ ! -f "$fa" ]; then
+              echo "flasher_args.json missing for $config" >&2
+              exit 1
+            fi
+            mkdir -p "boot/$name"
+            cp "$fa" "boot/$name/"
+            app_file="$(jq -r '.app.file' "$fa")"
+            while IFS= read -r f; do
+              [ "$f" = "$app_file" ] && continue
+              mkdir -p "boot/$name/$(dirname "$f")"
+              cp "$build_dir/$f" "boot/$name/$f"
+            done < <(jq -r '.flash_files[]' "$fa")
+          done
 
       # ------------------------------------------------------------------
       # Firmware signing (staging) — stage each config's unsigned image
       # together with a v1 build-info.json manifest, the contract the
       # signing dashboard validates before a build may enter the approval
-      # queue. Authentication is entirely via the repository's OIDC token
-      # (WIF) — no secrets are configured in GitHub for this.
+      # queue.
       # ------------------------------------------------------------------
       - name: Stage unsigned firmware for signing
         shell: bash
@@ -131,7 +156,8 @@ jobs:
             # it into the site as firmware-<chip>-<version>.ota.bin. The
             # factory image is a merged flash image (bootloader + partition
             # table + app) and is NOT directly signable — the signed factory
-            # image must be reassembled around the signed app afterwards.
+            # image is assembled around the signed app by
+            # publish-signed-firmware.yml.
             bins=( "site/$name"/firmware-*.ota.bin )
             if [ ${#bins[@]} -ne 1 ]; then
               echo "Expected exactly one app image for $name, found ${#bins[@]}" >&2
@@ -146,8 +172,18 @@ jobs:
             mkdir -p "$stage"
             cp "${bins[0]}" "$stage/firmware-unsigned.bin"
 
-            sha256=$(sha256sum "$stage/firmware-unsigned.bin" | cut -d' ' -f1)
+            # Sanity checks (onboarding §4.1): the staged image must be
+            # 4 KiB-aligned and must not already carry a signature block.
             size=$(stat -c%s "$stage/firmware-unsigned.bin")
+            if [ $(( size % 4096 )) -ne 0 ]; then
+              echo "App image for $name is not padded to a 4 KiB boundary (${size} bytes)" >&2
+              exit 1
+            fi
+            uvx --from esptool espsecure signature-info-v2 "$stage/firmware-unsigned.bin" 2>&1 \
+              | grep -qi "no signature" \
+              || { echo "App image for $name already contains a signature block" >&2; exit 1; }
+
+            sha256=$(sha256sum "$stage/firmware-unsigned.bin" | cut -d' ' -f1)
 
             # Built with jq so values are always correctly JSON-escaped.
             jq -n \
@@ -193,6 +229,15 @@ jobs:
             echo "Manifest for $name:" && cat "$stage/build-info.json"
           done
 
+      # The boot components are unsigned and non-secret; the post-sign
+      # publisher fetches them by run id + commit to merge with the signed app.
+      - name: Retain boot components for factory assembly
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-${{ github.sha }}
+          path: boot/
+          if-no-files-found: error
+
       - name: Authenticate to Google Cloud (WIF, no keys)
         uses: google-github-actions/auth@v2
         with:
@@ -213,25 +258,19 @@ jobs:
           FW_VERSION: ${{ steps.version.outputs.version }}
         run: |
           shopt -s nullglob
-          for config in *.yaml; do
-            [[ "$config" == *.factory.yaml ]] && continue
-            name="$(basename "${config%.*}")"
-            echo "Uploaded gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/" >> "$GITHUB_STEP_SUMMARY"
-          done
-          echo "Awaiting review & signature in the signing dashboard." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          {
+            echo "## Unsigned firmware uploaded"
+            echo ""
+            for config in *.yaml; do
+              [[ "$config" == *.factory.yaml ]] && continue
+              name="$(basename "${config%.*}")"
+              echo "- \`gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/\`"
+            done
+            echo ""
+            echo "Awaiting review & signature in the Autograph dashboard."
+            echo ""
+            echo "After approval, run **Publish signed firmware pages** with:"
+            echo "- version: \`${FW_VERSION}\`"
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- boot_run_id: \`${GITHUB_RUN_ID}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
