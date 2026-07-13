@@ -58,11 +58,27 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             echo "Generating page for $config"
-            uvx ewt-gen --dev "$config" \
-              -t "$name" \
-              -o "site/$name" \
-              --publish-url "${PAGES_BASE_URL%/}/$name" \
-              --fw-version "$FW_VERSION"
+            args=( "$config"
+              -t "$name"
+              -o "site/$name"
+              --publish-url "${PAGES_BASE_URL%/}/$name"
+              --fw-version "$FW_VERSION" )
+            if ! uvx ewt-gen --dev "${args[@]}"; then
+              # TEMPORARY — remove once ewt-gen >1.5.1 is released. ewt-gen
+              # only searches the old PlatformIO output layout (.pioenvs/*),
+              # but esphome dev's IDF-native build writes its outputs to
+              # .esphome/build/<device>/build/. Copy them to the
+              # <config>.factory.bin / .ota.bin names ewt-gen checks first,
+              # then regenerate the site without recompiling.
+              build_dir="$(ls -td .esphome/build/*/build 2>/dev/null | head -1)"
+              if [ -z "$build_dir" ] || [ ! -f "$build_dir/firmware.factory.bin" ]; then
+                echo "No compiled firmware found for $config" >&2
+                exit 1
+              fi
+              cp "$build_dir/firmware.factory.bin" "${config%.*}.factory.bin"
+              cp "$build_dir/firmware.ota.bin" "${config%.*}.ota.bin"
+              uvx ewt-gen --dev --skip-compile "${args[@]}"
+            fi
           done
 
           {
