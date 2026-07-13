@@ -22,10 +22,13 @@ on:
       # branch, but push triggers run the pushed branch's own version.
       - 20260709-config-updates
 
-# OIDC token minting requires id-token: write. Everything else stays read-only.
+# OIDC token minting requires id-token: write. pages: read lets
+# configure-pages resolve the site base URL that ewt-gen bakes into the
+# compiled OTA update component. Everything else stays read-only.
 permissions:
   contents: read
   id-token: write
+  pages: read
 
 concurrency:
   group: fw-upload-${{ github.ref }}
