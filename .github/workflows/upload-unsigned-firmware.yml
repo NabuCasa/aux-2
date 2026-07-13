@@ -17,6 +17,10 @@ on:
   push:
     branches:
       - main
+      # TEMP: pre-merge testing only — remove before merging. A renamed
+      # workflow file is not dispatchable until it exists on the default
+      # branch, but push triggers run the pushed branch's own version.
+      - 20260709-config-updates
 
 # OIDC token minting requires id-token: write. Everything else stays read-only.
 permissions:
