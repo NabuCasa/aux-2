@@ -201,9 +201,12 @@ jobs:
             # Rebuild the firmware page around the SIGNED binaries: ewt-gen
             # picks up <config>.factory.bin / <config>.ota.bin before looking
             # in build directories, and --skip-compile uses them as-is.
+            # --dev is still required: even without compiling, ewt-gen
+            # resolves the config through ESPHome, and the configs need the
+            # same ESPHome flavor they were built with.
             cp "$out/firmware.signed.factory.bin" "${config%.*}.factory.bin"
             cp "$out/firmware.signed.ota.bin" "${config%.*}.ota.bin"
-            uvx ewt-gen --skip-compile "$config" \
+            uvx ewt-gen --dev --skip-compile "$config" \
               -t "$name" \
               -o "site/$name" \
               --publish-url "${PAGES_BASE_URL%/}/$name" \
