@@ -2,10 +2,10 @@ esphome:
   friendly_name: Home Assistant Connect Aux-2
   name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.6.0
+  min_version: 2026.7.0
   project:
     name: Nabu Casa.Home Assistant Connect Aux-2
-    version: dev
+    version: 2026.7.0
   on_boot:
     # Must run before improv_serial::setup() but still after the
     # 250-priority network components (wifi (250), ethernet (250)), and
@@ -26,6 +26,9 @@ esphome:
           else:
             - ethernet.enable:
 
+provisioning:
+  timeout: 15min
+
 esp32:
   board: esp32-s3-devkitc-1
   cpu_frequency: 240MHz
@@ -34,6 +37,17 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
+    advanced:
+      nvs_encryption:
+        key_id: 0
+      # External-signing mode: no key here. With Secure Boot V2 (rsa3072)
+      # the public key travels in each image's signature block; binaries
+      # are signed after the build by Autograph, and
+      # publish-signed-firmware.yml verifies them against the KMS public
+      # key before publishing.
+      signed_ota_verification:
+        signing_scheme: rsa3072
+      enable_ota_downgrade_protection: true
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
@@ -132,6 +146,10 @@ wifi:
 improv_serial:
   id: improv_serial_component
 
+esp32_improv:
+  id: esp32_improv_component
+  authorizer: none
+
 logger:
   hardware_uart: UART0
 
@@ -139,6 +157,7 @@ api:
   # Device runs standalone as a SendSpin audio device; don't reboot
   # when no Home Assistant client is connected.
   reboot_timeout: 0s
+  encryption:
 
 ota:
   - platform: esphome
@@ -154,36 +173,19 @@ esp32_ble_tracker:
 
 select:
   - platform: template
-    name: Bluetooth Scanner Mode
-    id: scanner_mode_selector
-    entity_category: config
-    options:
-      - "Passive"
-      - "Active"
-    lambda: |-
-      if (id(proxy_ble_tracker).get_scan_active()) {
-        return {"Active"};
-      } else {
-        return {"Passive"};
-      }
-    set_action:
-      - lambda: |-
-          id(proxy_bt_proxy).bluetooth_scanner_set_mode(x == "Active");
-      - component.update: scanner_mode_selector
-  - platform: template
     id: audio_output_selector
     name: Audio Output
     entity_category: config
     optimistic: true
     restore_value: true
     options:
-      - "Analog (PCM5122 DAC)"
-      - "SPDIF (TOSLink)"
+      - "Analog"
+      - "Digital"
     on_value:
       - router.speaker.switch_output:
           id: audio_router_speaker
           target_speaker: !lambda |-
-            if (x == "SPDIF (TOSLink)") {
+            if (x == "Digital") {
               return id(i2s_audio_spdif_speaker);
             }
             return id(i2s_audio_dac_speaker);

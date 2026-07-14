@@ -1,0 +1,254 @@
+# Post-sign publisher. Run manually after an Autograph operator has reviewed
+# and signed a build. For each config it:
+#
+#   1. downloads firmware.signed.ota.bin + manifest.json from the signed
+#      bucket (direct GETs — the prefix-scoped read grant does not allow
+#      listing);
+#   2. recomputes the SHA-256 against the manifest's signed_sha256;
+#   3. verifies the Secure Boot v2 signature against the KMS public key,
+#      fetched at run time and pinned to the fingerprint below;
+#   4. assembles firmware.signed.factory.bin by merging the signed app with
+#      the boot components retained by the unsigned build for the SAME commit
+#      (Autograph never builds factory images — only the app is signed);
+#   5. extracts the app back out of the factory image and re-verifies it; and
+#   6. rebuilds the firmware pages around the signed binaries and deploys.
+#
+# Never combine a signed app with boot components from a different build:
+# version, commit, and boot_run_id must all refer to the same unsigned build
+# (its step summary prints the exact values to use here).
+#
+# There are no GitHub secrets: bucket read is via Workload Identity
+# Federation, and the artifact download uses the built-in GITHUB_TOKEN.
+
+name: Publish signed firmware pages
+
+run-name: Publish signed ${{ inputs.version }} (${{ inputs.commit }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version — the <version> path segment in the buckets (e.g. 2026.07.11.22)"
+        required: true
+      commit:
+        description: "Full commit SHA the build was produced from"
+        required: true
+      boot_run_id:
+        description: "Run ID of the unsigned build holding the boot-<commit> artifact"
+        required: true
+
+# id-token: write mints the OIDC token WIF exchanges for scoped bucket read;
+# actions: read lets `gh run download` fetch the boot-component artifact;
+# pages: write deploys the rebuilt site.
+permissions:
+  contents: read
+  id-token: write
+  pages: write
+  actions: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  CHIP: esp32s3
+  PROJECT_ID: nc-fw-signing-staging
+  SIGNED_BUCKET: nc-fw-signing-staging-fw-signed
+  # Uses the project NUMBER, not the project ID:
+  WIF_PROVIDER: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  # The signing key in Cloud KMS. The public half is fetched at run time
+  # (requires roles/cloudkms.publicKeyViewer on the key for this repo's WIF
+  # principal) and pinned to the fingerprint below — the SHA-256 of the
+  # DER-encoded public key — so a wrong environment or rotated key fails
+  # loudly instead of verifying against an unexpected key.
+  KMS_LOCATION: europe-west1
+  KMS_KEYRING: firmware-signing
+  KMS_KEY: aux-2-staging
+  KMS_KEY_VERSION: "1"
+  PUBKEY_DER_SHA256: 79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # The configs and public key must come from the exact commit that was
+      # built and signed, not from the current main.
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit }}
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Authenticate to Google Cloud (WIF, no keys)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+
+      - name: Fetch and pin the verification public key
+        run: |
+          set -euo pipefail
+          gcloud kms keys versions get-public-key "${KMS_KEY_VERSION}" \
+            --project "${PROJECT_ID}" \
+            --location "${KMS_LOCATION}" \
+            --keyring "${KMS_KEYRING}" \
+            --key "${KMS_KEY}" \
+            --output-file signing_pubkey.pem
+          actual=$(openssl pkey -pubin -in signing_pubkey.pem -outform DER | sha256sum | cut -d' ' -f1)
+          if [ "$actual" != "${PUBKEY_DER_SHA256}" ]; then
+            echo "Public key fingerprint mismatch — refusing to verify against it" >&2
+            echo "expected=${PUBKEY_DER_SHA256}" >&2
+            echo "actual  =${actual}" >&2
+            exit 1
+          fi
+
+      - name: Download boot components from the unsigned build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "${{ github.event.inputs.boot_run_id }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n "boot-${{ github.event.inputs.commit }}" \
+            -D boot
+
+      - name: Download, verify, and assemble signed firmware
+        shell: bash
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          COMMIT: ${{ github.event.inputs.commit }}
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          configs=(*.yaml)
+          if [ ${#configs[@]} -eq 0 ]; then
+            echo "No config files found."
+            exit 1
+          fi
+
+          mkdir -p site signed
+          for config in "${configs[@]}"; do
+            name="$(basename "${config%.*}")"
+            base="${name}/${VERSION}/${COMMIT}"
+            out="signed/$name"
+            mkdir -p "$out"
+
+            echo "Fetching signed artifacts for $name"
+            gcloud storage cp "gs://${SIGNED_BUCKET}/${base}/firmware.signed.ota.bin" "$out/firmware.signed.ota.bin"
+            gcloud storage cp "gs://${SIGNED_BUCKET}/${base}/manifest.json" "$out/manifest.json"
+
+            # Gate 1: recompute the signed digest against the manifest.
+            expected=$(jq -r '.signed_sha256 // empty' "$out/manifest.json")
+            actual=$(sha256sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)
+            if [ -z "$expected" ]; then
+              echo "Manifest for $name is missing signed_sha256" >&2
+              exit 1
+            fi
+            if [ "$expected" != "$actual" ]; then
+              echo "SHA-256 mismatch for $name — refusing to publish" >&2
+              echo "expected=$expected" >&2
+              echo "actual  =$actual" >&2
+              exit 1
+            fi
+
+            # Gate 2: Secure Boot v2 signature against the pinned KMS key.
+            uvx --from esptool espsecure verify-signature --version 2 \
+              --keyfile signing_pubkey.pem "$out/firmware.signed.ota.bin"
+
+            # Assemble the factory image: merge the signed app with the boot
+            # components from the same build, using the offsets and flash
+            # settings recorded in that build's flasher_args.json.
+            fa="boot/$name/flasher_args.json"
+            if [ ! -f "$fa" ]; then
+              echo "Boot components for $name are missing flasher_args.json" >&2
+              exit 1
+            fi
+            app_offset=$(jq -r '.app.offset' "$fa")
+            merge_args=()
+            while read -r offset file; do
+              if [ "$offset" = "$app_offset" ]; then
+                merge_args+=( "$offset" "$out/firmware.signed.ota.bin" )
+              else
+                merge_args+=( "$offset" "boot/$name/$file" )
+              fi
+            done < <(jq -r '.flash_files | to_entries[] | "\(.key) \(.value)"' "$fa")
+            uvx --from esptool esptool --chip "${CHIP}" merge-bin \
+              -o "$out/firmware.signed.factory.bin" \
+              --flash-mode "$(jq -r '.flash_settings.flash_mode' "$fa")" \
+              --flash-freq "$(jq -r '.flash_settings.flash_freq' "$fa")" \
+              --flash-size "$(jq -r '.flash_settings.flash_size' "$fa")" \
+              "${merge_args[@]}"
+
+            # Gate 3: extract the app back out of the factory image and
+            # re-verify its signature before publishing anything.
+            if [ $(( app_offset % 4096 )) -ne 0 ]; then
+              echo "App offset $app_offset is not 4 KiB aligned" >&2
+              exit 1
+            fi
+            dd if="$out/firmware.signed.factory.bin" of="$out/app-extracted.bin" \
+              bs=4096 skip=$(( app_offset / 4096 )) status=none
+            uvx --from esptool espsecure verify-signature --version 2 \
+              --keyfile signing_pubkey.pem "$out/app-extracted.bin"
+
+            # Rebuild the firmware page around the SIGNED binaries: ewt-gen
+            # picks up <config>.factory.bin / <config>.ota.bin before looking
+            # in build directories, and --skip-compile uses them as-is.
+            cp "$out/firmware.signed.factory.bin" "${config%.*}.factory.bin"
+            cp "$out/firmware.signed.ota.bin" "${config%.*}.ota.bin"
+            uvx ewt-gen --skip-compile "$config" \
+              -t "$name" \
+              -o "site/$name" \
+              --publish-url "${PAGES_BASE_URL%/}/$name" \
+              --fw-version "${VERSION}"
+          done
+
+          {
+            echo '<!doctype html>'
+            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
+            echo '<h1>Firmware pages</h1><ul>'
+            for config in "${configs[@]}"; do
+              name="$(basename "${config%.*}")"
+              echo "<li><a href=\"./$name/\">$name</a></li>"
+            done
+            echo '</ul></body></html>'
+          } > site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish summary
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          COMMIT: ${{ github.event.inputs.commit }}
+        run: |
+          shopt -s nullglob
+          {
+            echo "## Signed firmware verified & assembled"
+            echo ""
+            for config in *.yaml; do
+              [[ "$config" == *.factory.yaml ]] && continue
+              name="$(basename "${config%.*}")"
+              echo "- \`$name\` ${VERSION} (${COMMIT}) — signature verified, factory image assembled"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
