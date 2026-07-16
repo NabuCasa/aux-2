@@ -5,7 +5,7 @@ esphome:
   min_version: 2026.7.0
   project:
     name: Nabu Casa.Home Assistant Connect Aux-2
-    version: 2026.7.0
+    version: 2026.7.1
   on_boot:
     # Must run before improv_serial::setup() but still after the
     # 250-priority network components (wifi (250), ethernet (250)), and
@@ -70,6 +70,9 @@ psram:
 external_components:
   - source: github://pr#14255
     components: [ethernet, network, wifi]
+    refresh: always
+  - source: github://pr#17598
+    components: [improv_serial]
     refresh: always
   - source:
       type: local
