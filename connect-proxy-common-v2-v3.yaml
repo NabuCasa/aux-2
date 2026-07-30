@@ -5,7 +5,7 @@ esphome:
   min_version: 2026.7.0
   project:
     name: Nabu Casa.Home Assistant Connect Aux-2
-    version: 2026.7.1
+    version: 2026.7.2
   on_boot:
     # Must run before improv_serial::setup() but still after the
     # 250-priority network components (wifi (250), ethernet (250)), and
@@ -49,18 +49,10 @@ esp32:
         signing_scheme: rsa3072
       enable_ota_downgrade_protection: true
     sdkconfig_options:
-      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
-      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-      CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
-
       # Moves instructions and read only data from flash into PSRAM on boot.
       # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
-      # Considerably speeds up mWW at the cost of using more PSRAM.
       CONFIG_SPIRAM_RODATA: "y"
       CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
-
-      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
-      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
 
 psram:
   mode: octal
@@ -68,9 +60,6 @@ psram:
   ignore_not_found: false  # Aux-2 has PSRAM, so this is safe
 
 external_components:
-  - source: github://pr#14255
-    components: [ethernet, network, wifi]
-    refresh: always
   - source: github://pr#17598
     components: [improv_serial]
     refresh: always
@@ -168,30 +157,14 @@ ota:
 http_request:
 
 ##### Bluetooth Proxy
+esp32_ble:
+  use_psram: true
+
 bluetooth_proxy:
   id: proxy_bt_proxy
 
 esp32_ble_tracker:
   id: proxy_ble_tracker
-
-select:
-  - platform: template
-    id: audio_output_selector
-    name: Audio Output
-    entity_category: config
-    optimistic: true
-    restore_value: true
-    options:
-      - "Analog"
-      - "Digital"
-    on_value:
-      - router.speaker.switch_output:
-          id: audio_router_speaker
-          target_speaker: !lambda |-
-            if (x == "Digital") {
-              return id(i2s_audio_spdif_speaker);
-            }
-            return id(i2s_audio_dac_speaker);
 
 ##### Z-Wave Proxy
 mdns:
@@ -286,7 +259,7 @@ speaker:
     dac_type: external
     channel: stereo
     timeout: never
-    buffer_duration: 100ms
+    buffer_duration: 50ms
     audio_dac: pcm5122_dac
 
   # Hardware speaker output (via TOSLink)
@@ -299,8 +272,8 @@ speaker:
     i2s_audio_id: i2s_bus
     dac_type: external
     channel: stereo
-    timeout: 2s
-    buffer_duration: 100ms
+    timeout: 5s
+    buffer_duration: 50ms
     use_apll: true
 
   # Virtual speakers to combine the announcement and media streams together into one output
@@ -385,6 +358,25 @@ media_player:
           duration: 0.0s
 
 ##### Other Components
+select:
+  - platform: template
+    id: audio_output_selector
+    name: Audio Output
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "Analog"
+      - "Digital"
+    on_value:
+      - router.speaker.switch_output:
+          id: audio_router_speaker
+          target_speaker: !lambda |-
+            if (x == "Digital") {
+              return id(i2s_audio_spdif_speaker);
+            }
+            return id(i2s_audio_dac_speaker);
+
 power_supply:
   - id: led_power
     pin: 45
