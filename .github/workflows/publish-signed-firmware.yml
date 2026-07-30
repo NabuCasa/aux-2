@@ -5,8 +5,8 @@
 #      bucket (direct GETs — the prefix-scoped read grant does not allow
 #      listing);
 #   2. recomputes the SHA-256 against the manifest's signed_sha256;
-#   3. verifies the Secure Boot v2 signature against the KMS public key,
-#      fetched at run time and pinned to the fingerprint below;
+#   3. verifies the Secure Boot v2 signatures against BOTH signing keys
+#      (GCP KMS and the AWS backup key), each pinned by fingerprint;
 #   4. assembles firmware.signed.factory.bin by merging the signed app with
 #      the boot components retained by the unsigned build for the SAME commit
 #      (Autograph never builds factory images — only the app is signed);
@@ -56,16 +56,26 @@ env:
   SIGNED_BUCKET: nc-fw-signing-staging-fw-signed
   # Uses the project NUMBER, not the project ID:
   WIF_PROVIDER: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-  # The signing key in Cloud KMS. The public half is fetched at run time
-  # (requires roles/cloudkms.publicKeyViewer on the key for this repo's WIF
-  # principal) and pinned to the fingerprint below — the SHA-256 of the
-  # DER-encoded public key — so a wrong environment or rotated key fails
-  # loudly instead of verifying against an unexpected key.
+  # Every release must verify against BOTH signing keys (Autograph
+  # dual-signs): the GCP KMS key and the AWS backup key. Devices only trust
+  # the keys carried in their running app's signature sector, so publishing
+  # a single-signed image would shrink the fleet's trust set to that one
+  # key. Each public key is pinned to the SHA-256 of its DER encoding so a
+  # wrong environment or an unexpected rotation fails loudly.
+  #
+  # GCP: the public half is fetched at run time (requires
+  # roles/cloudkms.publicKeyViewer on the key for this repo's WIF principal).
   KMS_LOCATION: europe-west1
   KMS_KEYRING: firmware-signing
   KMS_KEY: aux-2-staging
   KMS_KEY_VERSION: "1"
-  PUBKEY_DER_SHA256: 79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072
+  GCP_PUBKEY_DER_SHA256: 79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072
+  # AWS: the public half is fetched at run time via an OIDC-assumed role
+  # whose only permission is kms:GetPublicKey on this key.
+  AWS_REGION: eu-central-1
+  AWS_ROLE_ARN: arn:aws:iam::307662261764:role/aux-2-fw-pubkey-reader
+  AWS_KMS_KEY_ARN: arn:aws:kms:eu-central-1:307662261764:key/mrk-1ee2deb6f3e547f3a2ce74bef1e16f21
+  AWS_PUBKEY_DER_SHA256: 89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7
 
 jobs:
   publish:
@@ -91,7 +101,13 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
 
-      - name: Fetch and pin the verification public key
+      - name: Authenticate to AWS (OIDC, no keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch and pin the verification public keys
         run: |
           set -euo pipefail
           gcloud kms keys versions get-public-key "${KMS_KEY_VERSION}" \
@@ -101,12 +117,25 @@ jobs:
             --key "${KMS_KEY}" \
             --output-file signing_pubkey.pem
           actual=$(openssl pkey -pubin -in signing_pubkey.pem -outform DER | sha256sum | cut -d' ' -f1)
-          if [ "$actual" != "${PUBKEY_DER_SHA256}" ]; then
-            echo "Public key fingerprint mismatch — refusing to verify against it" >&2
-            echo "expected=${PUBKEY_DER_SHA256}" >&2
+          if [ "$actual" != "${GCP_PUBKEY_DER_SHA256}" ]; then
+            echo "GCP public key fingerprint mismatch — refusing to verify against it" >&2
+            echo "expected=${GCP_PUBKEY_DER_SHA256}" >&2
             echo "actual  =${actual}" >&2
             exit 1
           fi
+          # AWS KMS returns the public key as base64-encoded DER — the
+          # fingerprint is the SHA-256 of exactly those DER bytes.
+          aws kms get-public-key --key-id "${AWS_KMS_KEY_ARN}" \
+            --query PublicKey --output text | base64 -d > aws_signing_pubkey.der
+          actual_aws=$(sha256sum aws_signing_pubkey.der | cut -d' ' -f1)
+          if [ "$actual_aws" != "${AWS_PUBKEY_DER_SHA256}" ]; then
+            echo "AWS public key fingerprint mismatch — refusing to verify against it" >&2
+            echo "expected=${AWS_PUBKEY_DER_SHA256}" >&2
+            echo "actual  =${actual_aws}" >&2
+            exit 1
+          fi
+          openssl pkey -pubin -inform DER -in aws_signing_pubkey.der \
+            -out aws_signing_pubkey.pem
 
       - name: Download boot components from the unsigned build
         env:
@@ -159,9 +188,13 @@ jobs:
               exit 1
             fi
 
-            # Gate 2: Secure Boot v2 signature against the pinned KMS key.
+            # Gate 2: Secure Boot v2 signatures — the image must verify
+            # against BOTH pinned keys (see the env block for why a
+            # single-signed release must never be published).
             uvx --from esptool espsecure verify-signature --version 2 \
               --keyfile signing_pubkey.pem "$out/firmware.signed.ota.bin"
+            uvx --from esptool espsecure verify-signature --version 2 \
+              --keyfile aws_signing_pubkey.pem "$out/firmware.signed.ota.bin"
 
             # Assemble the factory image: merge the signed app with the boot
             # components from the same build, using the offsets and flash
@@ -197,6 +230,8 @@ jobs:
               bs=4096 skip=$(( app_offset / 4096 )) status=none
             uvx --from esptool espsecure verify-signature --version 2 \
               --keyfile signing_pubkey.pem "$out/app-extracted.bin"
+            uvx --from esptool espsecure verify-signature --version 2 \
+              --keyfile aws_signing_pubkey.pem "$out/app-extracted.bin"
 
             # Rebuild the firmware page around the SIGNED binaries: ewt-gen
             # picks up <config>.factory.bin / <config>.ota.bin before looking
