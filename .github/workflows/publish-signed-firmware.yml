@@ -1,9 +1,11 @@
 # Post-sign publisher. Run manually after an Autograph operator has reviewed
-# and signed a build. For each config it:
+# and signed a build in the selected environment (staging or prod). Dispatch
+# staging publishes on main and prod publishes ON THE RELEASE TAG (the prod
+# WIF provider only mints tokens for tag refs). For each config it:
 #
-#   1. downloads firmware.signed.ota.bin + manifest.json from the signed
-#      bucket (direct GETs — the prefix-scoped read grant does not allow
-#      listing);
+#   1. downloads firmware.signed.ota.bin + manifest.json from that
+#      environment's signed bucket (direct GETs — the prefix-scoped read
+#      grant does not allow listing);
 #   2. recomputes the SHA-256 against the manifest's signed_sha256;
 #   3. verifies the Secure Boot v2 signatures against BOTH signing keys
 #      (GCP KMS and the AWS backup key), each pinned by fingerprint;
@@ -11,24 +13,39 @@
 #      the boot components retained by the unsigned build for the SAME commit
 #      (Autograph never builds factory images — only the app is signed);
 #   5. extracts the app back out of the factory image and re-verifies it; and
-#   6. rebuilds the firmware pages around the signed binaries and deploys.
+#   6. rebuilds this environment's half of the firmware pages and deploys.
+#
+# Site layout: the deployed site is /staging/<config>/ + /prod/<config>/.
+# Because a Pages deploy replaces the whole site, the assembled site persists
+# on the machine-managed `pages-site` branch: each publish refreshes only its
+# environment's subtree, commits the merged result, and deploys that.
+# TRANSITION: staging content is also mirrored at the legacy root paths
+# (/<config>/) because fleet firmware built before the split polls manifests
+# there. Remove the mirror once the fleet runs firmware that polls /staging/.
 #
 # Never combine a signed app with boot components from a different build:
-# version, commit, and boot_run_id must all refer to the same unsigned build
-# (its step summary prints the exact values to use here).
+# environment, version, commit, and boot_run_id must all refer to the same
+# unsigned build (its step summary prints the exact values to use here).
 #
 # There are no GitHub secrets: bucket read is via Workload Identity
 # Federation, and the artifact download uses the built-in GITHUB_TOKEN.
 
 name: Publish signed firmware pages
 
-run-name: Publish signed ${{ inputs.version }} (${{ inputs.commit }})
+run-name: Publish signed ${{ inputs.environment }} ${{ inputs.version }} (${{ inputs.commit }})
 
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "Signing environment the build was uploaded to and signed in"
+        required: true
+        type: choice
+        options:
+          - staging
+          - prod
       version:
-        description: "Release version — the <version> path segment in the buckets (e.g. 2026.07.11.22)"
+        description: "Release version — the <version> path segment in the buckets (staging: e.g. 2026.07.29.8; prod: the release tag, e.g. 2026.8.0)"
         required: true
       commit:
         description: "Full commit SHA the build was produced from"
@@ -37,11 +54,12 @@ on:
         description: "Run ID of the unsigned build holding the boot-<commit> artifact"
         required: true
 
-# id-token: write mints the OIDC token WIF exchanges for scoped bucket read;
-# actions: read lets `gh run download` fetch the boot-component artifact;
-# pages: write deploys the rebuilt site.
+# id-token: write mints the OIDC token exchanged for scoped bucket/KMS reads
+# (GCP WIF and the AWS role); actions: read lets `gh run download` fetch the
+# boot-component artifact; contents: write pushes the assembled site to the
+# machine-managed pages-site branch; pages: write deploys it.
 permissions:
-  contents: read
+  contents: write
   id-token: write
   pages: write
   actions: read
@@ -52,41 +70,85 @@ concurrency:
 
 env:
   CHIP: esp32s3
-  PROJECT_ID: nc-fw-signing-staging
-  SIGNED_BUCKET: nc-fw-signing-staging-fw-signed
-  # Uses the project NUMBER, not the project ID:
-  WIF_PROVIDER: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  FW_ENV: ${{ github.event.inputs.environment }}
+  # Environment-routed values from repo-level Actions variables
+  # (FW_STAGING_* / FW_PROD_*). Deliberately NOT GitHub Environments:
+  # attaching `environment:` to a job changes the OIDC token's subject claim
+  # from ref-based to environment-based, which the ref-restricted WIF
+  # providers (prod: tags only) would reject.
+  PROJECT_ID: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_PROJECT_ID || vars.FW_STAGING_PROJECT_ID }}
+  SIGNED_BUCKET: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_SIGNED_BUCKET || vars.FW_STAGING_SIGNED_BUCKET }}
+  WIF_PROVIDER: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_WIF_PROVIDER || vars.FW_STAGING_WIF_PROVIDER }}
   # Every release must verify against BOTH signing keys (Autograph
   # dual-signs): the GCP KMS key and the AWS backup key. Devices only trust
   # the keys carried in their running app's signature sector, so publishing
   # a single-signed image would shrink the fleet's trust set to that one
   # key. Each public key is pinned to the SHA-256 of its DER encoding so a
-  # wrong environment or an unexpected rotation fails loudly.
+  # wrong environment or an unexpected rotation fails loudly. The pins are
+  # trust anchors and stay IN THIS FILE (git-reviewed), not in variables.
   #
   # GCP: the public half is fetched at run time (requires
   # roles/cloudkms.publicKeyViewer on the key for this repo's WIF principal).
+  # Prod key is `aux-2-active` (active/next rotation naming). Prod
+  # fingerprint per bbangert 2026-07-30, pending out-of-band confirmation.
   KMS_LOCATION: europe-west1
   KMS_KEYRING: firmware-signing
-  KMS_KEY: aux-2-staging
+  KMS_KEY: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_KMS_KEY || vars.FW_STAGING_KMS_KEY }}
   KMS_KEY_VERSION: "1"
-  GCP_PUBKEY_DER_SHA256: 79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072
+  GCP_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && '387378c709403303949ed586f3d0534a9504977be2eba48c9e9c2a12395ecdb4' || '79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072' }}
   # AWS: the public half is fetched at run time via an OIDC-assumed role
   # whose only permission is kms:GetPublicKey on this key.
-  AWS_REGION: eu-central-1
-  AWS_ROLE_ARN: arn:aws:iam::307662261764:role/aux-2-fw-pubkey-reader
-  AWS_KMS_KEY_ARN: arn:aws:kms:eu-central-1:307662261764:key/mrk-1ee2deb6f3e547f3a2ce74bef1e16f21
-  AWS_PUBKEY_DER_SHA256: 89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7
+  # TRANSITION (first-run rotation, per bbangert): prod images' backup block
+  # is signed by the STAGING AWS key until cutover, so the prod variables and
+  # pin intentionally match staging. At cutover: update FW_PROD_AWS_ROLE_ARN
+  # + FW_PROD_AWS_KMS_KEY_ARN variables and the prod fingerprint below to the
+  # new aux-2-signing-prod-backup key values.
+  AWS_REGION: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_REGION || vars.FW_STAGING_AWS_REGION }}
+  AWS_ROLE_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_ROLE_ARN || vars.FW_STAGING_AWS_ROLE_ARN }}
+  AWS_KMS_KEY_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_KMS_KEY_ARN || vars.FW_STAGING_AWS_KMS_KEY_ARN }}
+  AWS_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' || '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' }}
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Prod tokens only mint on tag refs (WIF provider condition), so a prod
+      # publish must be dispatched ON the release tag:
+      #   gh workflow run publish-signed-firmware.yml --ref <tag> ...
+      # Staging publishes dispatch on main. Fail fast with a clear message
+      # instead of a cryptic STS error at the auth step. Also fail loudly on
+      # unset repo Actions variables — they're invisible to PR review.
+      - name: Check dispatch ref and environment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${FW_ENV}" = "prod" ] && [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "prod publishes must be dispatched on the release tag, not '${GITHUB_REF}'" >&2
+            echo "(the prod WIF provider only mints tokens for refs/tags/*):" >&2
+            echo "  gh workflow run publish-signed-firmware.yml --ref <tag> -f environment=prod ..." >&2
+            exit 1
+          fi
+          for v in PROJECT_ID SIGNED_BUCKET WIF_PROVIDER KMS_KEY AWS_REGION AWS_ROLE_ARN AWS_KMS_KEY_ARN; do
+            if [ -z "${!v}" ]; then
+              echo "Missing repo Actions variable for ${FW_ENV} ${v} (FW_$(echo "${FW_ENV}" | tr a-z A-Z)_…)" >&2
+              exit 1
+            fi
+          done
+
       # The configs and public key must come from the exact commit that was
       # built and signed, not from the current main.
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.commit }}
+
+      # The previously published site — this publish replaces only the
+      # ${FW_ENV} subtree and re-deploys the merged whole.
+      - name: Checkout published site state
+        uses: actions/checkout@v4
+        with:
+          ref: pages-site
+          path: .site-state
 
       - name: Setup Pages
         id: pages
@@ -163,14 +225,20 @@ jobs:
             exit 1
           fi
 
+          # Start from the previously published site and replace only this
+          # environment's subtree.
           mkdir -p site signed
+          rsync -a --exclude=.git .site-state/ site/
+          rm -rf "site/${FW_ENV}"
+          mkdir -p "site/${FW_ENV}"
+
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             base="${name}/${VERSION}/${COMMIT}"
             out="signed/$name"
             mkdir -p "$out"
 
-            echo "Fetching signed artifacts for $name"
+            echo "Fetching signed artifacts for $name (${FW_ENV})"
             gcloud storage cp "gs://${SIGNED_BUCKET}/${base}/firmware.signed.ota.bin" "$out/firmware.signed.ota.bin"
             gcloud storage cp "gs://${SIGNED_BUCKET}/${base}/manifest.json" "$out/manifest.json"
 
@@ -221,7 +289,7 @@ jobs:
               "${merge_args[@]}"
 
             # Gate 3: extract the app back out of the factory image and
-            # re-verify its signature before publishing anything.
+            # re-verify its signatures before publishing anything.
             if [ $(( app_offset % 4096 )) -ne 0 ]; then
               echo "App offset $app_offset is not 4 KiB aligned" >&2
               exit 1
@@ -233,31 +301,73 @@ jobs:
             uvx --from esptool espsecure verify-signature --version 2 \
               --keyfile aws_signing_pubkey.pem "$out/app-extracted.bin"
 
-            # Rebuild the firmware page around the SIGNED binaries: ewt-gen
-            # picks up <config>.factory.bin / <config>.ota.bin before looking
-            # in build directories, and --skip-compile uses them as-is.
-            # --dev is still required: even without compiling, ewt-gen
+            # Rebuild this config's firmware page around the SIGNED binaries:
+            # ewt-gen picks up <config>.factory.bin / <config>.ota.bin before
+            # looking in build directories, and --skip-compile uses them
+            # as-is. --dev is still required: even without compiling, ewt-gen
             # resolves the config through ESPHome, and the configs need the
             # same ESPHome flavor they were built with.
             cp "$out/firmware.signed.factory.bin" "${config%.*}.factory.bin"
             cp "$out/firmware.signed.ota.bin" "${config%.*}.ota.bin"
             uvx ewt-gen --dev --skip-compile "$config" \
               -t "$name" \
-              -o "site/$name" \
-              --publish-url "${PAGES_BASE_URL%/}/$name" \
+              -o "site/${FW_ENV}/$name" \
+              --publish-url "${PAGES_BASE_URL%/}/${FW_ENV}/$name" \
               --fw-version "${VERSION}"
           done
 
+          # Environment index
           {
             echo '<!doctype html>'
-            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
-            echo '<h1>Firmware pages</h1><ul>'
+            echo "<html><head><meta charset=\"utf-8\"><title>Firmware pages (${FW_ENV})</title><meta name=\"viewport\" content=\"width=device-width\"><style>li { margin: 4px 0 }</style></head><body>"
+            echo "<h1>Firmware pages (${FW_ENV})</h1><ul>"
             for config in "${configs[@]}"; do
               name="$(basename "${config%.*}")"
               echo "<li><a href=\"./$name/\">$name</a></li>"
             done
             echo '</ul></body></html>'
+          } > "site/${FW_ENV}/index.html"
+
+          # TRANSITION: mirror staging content at the legacy root paths —
+          # fleet firmware built before the environment split polls its
+          # update manifest at /<config>/. Remove once the fleet runs
+          # firmware that polls /staging/.
+          if [ "${FW_ENV}" = "staging" ]; then
+            for config in "${configs[@]}"; do
+              name="$(basename "${config%.*}")"
+              rm -rf "site/$name"
+              cp -R "site/staging/$name" "site/$name"
+            done
+          fi
+
+          # Root index: link whichever environments have been published.
+          {
+            echo '<!doctype html>'
+            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
+            echo '<h1>Firmware pages</h1><ul>'
+            for envdir in staging prod; do
+              if [ -d "site/$envdir" ]; then
+                echo "<li><a href=\"./$envdir/\">$envdir</a></li>"
+              fi
+            done
+            echo '</ul></body></html>'
           } > site/index.html
+
+      # Persist the merged site so the next publish (either environment)
+      # starts from it.
+      - name: Persist site state to pages-site branch
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          COMMIT: ${{ github.event.inputs.commit }}
+        run: |
+          set -euo pipefail
+          rsync -a --delete --exclude=.git site/ .site-state/
+          cd .site-state
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish ${FW_ENV} ${VERSION} (${COMMIT})" || echo "Site unchanged"
+          git push origin HEAD:pages-site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -271,12 +381,12 @@ jobs:
         run: |
           shopt -s nullglob
           {
-            echo "## Signed firmware verified & assembled"
+            echo "## Signed firmware verified & assembled (${FW_ENV})"
             echo ""
             for config in *.yaml; do
               [[ "$config" == *.factory.yaml ]] && continue
               name="$(basename "${config%.*}")"
-              echo "- \`$name\` ${VERSION} (${COMMIT}) — signature verified, factory image assembled"
+              echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled → /${FW_ENV}/$name/"
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
