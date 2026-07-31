@@ -4,6 +4,13 @@
 # dashboard; after approval, publish-signed-firmware.yml assembles the factory
 # image around the signed app and deploys the firmware pages.
 #
+# Environment routing: pushes to main (and manual dispatches) build for
+# STAGING; pushing a CalVer version tag (e.g. 2026.8.0) builds for
+# PRODUCTION. The environment
+# decides the Autograph instance (project/bucket/WIF) and the /staging/ or
+# /prod/ site prefix baked into the compiled OTA update component — prod and
+# staging firmware trust different signing keys and must never mix channels.
+#
 # This workflow deploys nothing: the site it generates as a compile by-product
 # is discarded, because a site built here would carry the UNSIGNED binaries.
 #
@@ -17,6 +24,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "[0-9]*"
 
 # OIDC token minting requires id-token: write. pages: read lets
 # configure-pages resolve the site base URL that ewt-gen bakes into the
@@ -36,10 +45,16 @@ env:
   # (the YAML basename), which must be registered in the dashboard.
   CHIP: esp32s3
   SIGN_SCHEME: rsa-pss-3072-sha256
-  PROJECT_ID: nc-fw-signing-staging
-  BUCKET: nc-fw-signing-staging-fw-unsigned
-  # Uses the project NUMBER, not the project ID:
-  WIF_PROVIDER: projects/1012325082123/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  # Environment-routed values: version tags go to the production Autograph
+  # instance, everything else to staging. Values live in repo-level Actions
+  # variables (FW_STAGING_* / FW_PROD_*). Deliberately NOT GitHub
+  # Environments: attaching `environment:` to a job changes the OIDC token's
+  # subject claim from ref-based to environment-based, which the
+  # ref-restricted WIF providers (prod: tags only) would reject.
+  FW_ENV: ${{ startsWith(github.ref, 'refs/tags/') && 'prod' || 'staging' }}
+  PROJECT_ID: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_PROJECT_ID || vars.FW_STAGING_PROJECT_ID }}
+  BUCKET: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_UNSIGNED_BUCKET || vars.FW_STAGING_UNSIGNED_BUCKET }}
+  WIF_PROVIDER: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_WIF_PROVIDER || vars.FW_STAGING_WIF_PROVIDER }}
 
 jobs:
   build:
@@ -58,15 +73,35 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Check environment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Repo-level Actions variables are invisible to PR review — fail
+          # loudly if any are unset rather than proceeding with empty values.
+          for v in PROJECT_ID BUCKET WIF_PROVIDER; do
+            if [ -z "${!v}" ]; then
+              echo "Missing repo Actions variable for ${FW_ENV} ${v} (FW_$(echo "${FW_ENV}" | tr a-z A-Z)_…)" >&2
+              exit 1
+            fi
+          done
+
       - name: Compute firmware version
         id: version
         shell: bash
         run: |
           set -euo pipefail
-          commit_date="$(git show -s --format=%cs HEAD)"
-          version="${commit_date//-/.}.${GITHUB_RUN_NUMBER}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Production: the tag IS the version (bare CalVer, e.g.
+            # 2026.8.0). Tolerate an accidental v prefix by stripping it.
+            version="${GITHUB_REF_NAME#v}"
+          else
+            # Staging: date-based CalVer with the run number.
+            commit_date="$(git show -s --format=%cs HEAD)"
+            version="${commit_date//-/.}.${GITHUB_RUN_NUMBER}"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Firmware version: $version"
+          echo "Firmware version: $version (${FW_ENV})"
 
       - name: Build firmware with ewt-gen
         shell: bash
@@ -90,7 +125,7 @@ jobs:
             uvx ewt-gen --dev "$config" \
               -t "$name" \
               -o "site/$name" \
-              --publish-url "${PAGES_BASE_URL%/}/$name" \
+              --publish-url "${PAGES_BASE_URL%/}/${FW_ENV}/$name" \
               --fw-version "$FW_VERSION"
 
             # Retain this build's boot components (everything flasher_args.json
@@ -252,7 +287,7 @@ jobs:
         run: |
           shopt -s nullglob
           {
-            echo "## Unsigned firmware uploaded"
+            echo "## Unsigned firmware uploaded (${FW_ENV})"
             echo ""
             for config in *.yaml; do
               [[ "$config" == *.factory.yaml ]] && continue
@@ -260,10 +295,16 @@ jobs:
               echo "- \`gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/\`"
             done
             echo ""
-            echo "Awaiting review & signature in the Autograph dashboard."
+            echo "Awaiting review & signature in the **${FW_ENV}** Autograph dashboard."
             echo ""
             echo "After approval, run **Publish signed firmware pages** with:"
+            echo "- environment: \`${FW_ENV}\`"
             echo "- version: \`${FW_VERSION}\`"
             echo "- commit: \`${GITHUB_SHA}\`"
             echo "- boot_run_id: \`${GITHUB_RUN_ID}\`"
+            if [ "${FW_ENV}" = "prod" ]; then
+              echo "- dispatched on the release tag: \`--ref ${GITHUB_REF_NAME}\` (prod WIF only mints tokens for tags)"
+            else
+              echo "- dispatched on \`--ref main\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
