@@ -63,6 +63,12 @@ external_components:
   - source: github://pr#17598
     components: [improv_serial]
     refresh: always
+  # Multi-key OTA signature verification: accepts an image signed by any key the
+  # running app trusts, enabling key rotation and cross-provider backup keys.
+  # Remove once esphome/esphome#17981 lands in a release.
+  - source: github://pr#17981
+    components: [esp32, ota]
+    refresh: always
   - source:
       type: local
       path: components
