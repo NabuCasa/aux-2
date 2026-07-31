@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>connect-proxy-common-v2-v3</title>
+  <meta property="og:title" content="connect-proxy-common-v2-v3">
+  <meta property="og:description" content="Install connect-proxy-common-v2-v3 firmware directly from your browser using ESP Web Tools.">
+  <script
+    type="module"
+    src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  ></script>
+  <style>
+    :root {
+      --primary-color: #0366d6;
+      --bg-color: #ffffff;
+      --text-color: #24292e;
+      --border-color: #e1e4e8;
+      --card-bg: #f6f8fa;
+      --warning-bg: #fff8e6;
+      --warning-border: #f0c36d;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-color: #58a6ff;
+        --bg-color: #0d1117;
+        --text-color: #c9d1d9;
+        --border-color: #30363d;
+        --card-bg: #161b22;
+        --warning-bg: #3d2e00;
+        --warning-border: #6e5a1f;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    h1 {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .version-badge {
+      font-size: 0.5em;
+      font-weight: normal;
+      color: var(--text-color);
+      opacity: 0.6;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    h2 {
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .install-section {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .install-section h2 {
+      margin-top: 0;
+    }
+
+    esp-web-install-button {
+      --esp-tools-button-color: var(--primary-color);
+    }
+
+    a {
+      color: var(--primary-color);
+    }
+
+    code {
+      background: var(--card-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* Tabs */
+    .tabs {
+      margin: 1rem 0;
+    }
+
+    .tabs input[type="radio"] {
+      display: none;
+    }
+
+    .tab-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 0;
+    }
+
+    .tab-labels label {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      margin-bottom: -1px;
+      background: var(--bg-color);
+    }
+
+    .tab-labels label:hover {
+      background: var(--card-bg);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      background: var(--card-bg);
+    }
+
+    #tab-esp32s3:checked ~ .tab-content.content-esp32s3 { display: block; }
+#tab-esp32s3:checked ~ .tab-labels label[for='tab-esp32s3'] { background: var(--card-bg); border-color: var(--border-color); }
+
+    .firmware-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      font-weight: 500;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+
+    .yaml-details {
+      margin: 0.5rem 0 0 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .yaml-details summary {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-weight: 500;
+      background: var(--card-bg);
+      border-radius: 8px;
+    }
+
+    .yaml-details summary .summary-content {
+      display: inline-flex;
+      justify-content: space-between;
+      align-items: center;
+      width: calc(100% - 1.5em);
+      margin-left: 8px;
+    }
+
+    .download-link {
+      font-weight: normal;
+      font-size: 0.85em;
+    }
+
+    .yaml-details[open] summary {
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 8px 8px 0 0;
+    }
+
+    .yaml-details pre {
+      margin: 0;
+      padding: 1rem;
+      overflow-x: auto;
+      background: var(--bg-color);
+      border-radius: 0 0 8px 8px;
+    }
+
+    .yaml-details pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+
+    ol {
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin: 0.5rem 0;
+    }
+
+    .not-supported {
+      display: none;
+      color: #b00;
+      padding: 1rem;
+      background: #fee;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+
+    esp-web-install-button[install-unsupported] + .not-supported {
+      display: block;
+    }
+
+    .insecure-context {
+      display: none;
+    }
+
+    .insecure-context .warning {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    body.insecure .secure-only {
+      display: none;
+    }
+
+    body.insecure .insecure-context {
+      display: block;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      color: var(--text-color);
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <h1>connect-proxy-common-v2-v3 <span class="version-badge">v2026.8.0</span></h1>
+
+  <div class="card install-section secure-only">
+    <h2>Install Firmware</h2>
+    <p>Connect your device via USB and click the button below to install.</p>
+
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+
+    <div class="not-supported">
+      <strong>Browser not supported.</strong><br>
+      ESP Web Tools requires a Chromium-based browser (Chrome, Edge) with Web Serial support.
+      Please use one of these browsers, or follow the manual installation instructions below.
+    </div>
+  </div>
+
+  <div class="insecure-context">
+    <div class="warning">
+      <strong>Browser-based installation requires HTTPS.</strong><br>
+      This page is not served over a secure connection, so the install button won't work.
+      Use <a href="https://web.esphome.io" target="_blank">web.esphome.io</a> to install the firmware instead.
+    </div>
+  </div>
+
+  <div class="tabs">
+    <input type="radio" name="chip-tab" id="tab-esp32s3" checked>
+    <div class="tab-labels">
+      <label for="tab-esp32s3">ESP32-S3</label>
+    </div>
+    <div class="tab-content content-esp32s3">
+  <div class="firmware-row"><span>Firmware</span> <a href="firmware-esp32s3-2026.8.0.bin" download class="download-link">Download</a></div>
+  <details class="yaml-details">
+    <summary><span class="summary-content">Configuration <a href="connect-proxy-common-v2-v3.yaml" download class="download-link">Download</a></span></summary>
+    <pre><code>esphome:
+  friendly_name: Home Assistant Connect Aux-2
+  name: connect-aux-2
+  name_add_mac_suffix: true
+  min_version: 2026.7.0
+  project:
+    name: Nabu Casa.Home Assistant Connect Aux-2
+    version: 2026.7.2
+  on_boot:
+    # Must run before improv_serial::setup() but still after the
+    # 250-priority network components (wifi (250), ethernet (250)), and
+    # w5500_link_monitor (250) have all completed setup() — all DISABLED.
+    # Activate exactly one interface based on the persisted use_wifi flag;
+    # the inactive component leaves SPI / the W5500 untouched so whichever
+    # wins owns the bus alone. Transitions to the other interface cross a
+    # reboot, driven by w5500_link_monitor (in Wi-Fi mode, on cable insert)
+    # or ethernet.on_disconnect (in Ethernet mode, on cable removal).
+    priority: 205
+    then:
+      - if:
+          condition:
+            lambda: &#x27;return id(use_wifi);&#x27;
+          then:
+            - wifi.enable:
+            - w5500_link_monitor.start: link_monitor
+          else:
+            - ethernet.enable:
+
+provisioning:
+  timeout: 15min
+
+esp32:
+  board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    version: recommended
+    advanced:
+      nvs_encryption:
+        key_id: 0
+      # External-signing mode: no key here. With Secure Boot V2 (rsa3072)
+      # the public key travels in each image&#x27;s signature block; binaries
+      # are signed after the build by Autograph, and
+      # publish-signed-firmware.yml verifies them against the KMS public
+      # key before publishing.
+      signed_ota_verification:
+        signing_scheme: rsa3072
+      enable_ota_downgrade_protection: true
+    sdkconfig_options:
+      # Moves instructions and read only data from flash into PSRAM on boot.
+      # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
+      CONFIG_SPIRAM_RODATA: &quot;y&quot;
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: &quot;y&quot;
+
+psram:
+  mode: octal
+  speed: 80MHz
+  ignore_not_found: false  # Aux-2 has PSRAM, so this is safe
+
+external_components:
+  - source: github://pr#17598
+    components: [improv_serial]
+    refresh: always
+  - source:
+      type: local
+      path: components
+    components: [w5500_link_monitor]
+
+# Restored from NVS at boot. Drives which network interface comes up via the
+# on_boot lambda above. The &quot;Network Interface&quot; select component updates this
+# value and reboots so the change takes effect.
+globals:
+  - id: use_wifi
+    type: bool
+    restore_value: yes
+    # Default Wi-Fi on a fresh/factory-reset device so improv_serial and the AP are
+    # available immediately for provisioning (no startup wait). w5500_link_monitor
+    # runs in Wi-Fi mode and, if a cable is present, fires on_link_up on its first
+    # poll (~2s) -&gt; sets use_wifi=false -&gt; reboot into Ethernet. restore_value keeps
+    # the learned interface across reboots, so this initial_value only applies on the
+    # very first boot (or after a factory reset).
+    initial_value: &#x27;true&#x27;
+
+network:
+  priority:
+    - ethernet
+    - wifi
+
+ethernet:
+  id: eth_component
+  enable_on_boot: false
+  type: W5500
+  clock_speed: 80MHz
+  clk_pin: 12
+  mosi_pin: 11
+  miso_pin: 13
+  cs_pin: 10
+  interrupt_pin: 14
+  reset_pin: 39
+  # Cable unplugged while running on ethernet → reboot into wifi. The
+  # disconnect_trigger only fires after we&#x27;ve reached CONNECTED at least
+  # once (see ethernet_component_esp32.cpp), so initial CONNECTING-state
+  # retries on a no-cable boot don&#x27;t churn this action.
+  on_disconnect:
+    - globals.set:
+        id: use_wifi
+        value: &#x27;true&#x27;
+    - lambda: &#x27;global_preferences-&gt;sync();&#x27;
+    - delay: 500ms
+    - button.press: restart_button
+
+# Active only on Wi-Fi-mode boots. Polls the W5500&#x27;s PHYCFGR register over
+# SPI and fires on_link_up when a cable is detected, so we reboot into
+# ethernet mode. Inherits SPI host, pins, and clock speed from the ethernet
+# component above — only one of the two ever calls spi_bus_initialize() on
+# a given boot.
+w5500_link_monitor:
+  id: link_monitor
+  ethernet_id: eth_component
+  on_link_up:
+    - globals.set:
+        id: use_wifi
+        value: &#x27;false&#x27;
+    - lambda: &#x27;global_preferences-&gt;sync();&#x27;
+    - delay: 500ms
+    - button.press: restart_button
+
+wifi:
+  id: wifi_component
+  enable_btm: true
+  enable_rrm: true
+  enable_on_boot: false
+  power_save_mode: none
+  use_psram: true
+
+improv_serial:
+  id: improv_serial_component
+
+esp32_improv:
+  id: esp32_improv_component
+  authorizer: none
+
+logger:
+  hardware_uart: UART0
+
+api:
+  # Device runs standalone as a SendSpin audio device; don&#x27;t reboot
+  # when no Home Assistant client is connected.
+  reboot_timeout: 0s
+  encryption:
+
+ota:
+  - platform: esphome
+
+http_request:
+
+##### Bluetooth Proxy
+esp32_ble:
+  use_psram: true
+
+bluetooth_proxy:
+  id: proxy_bt_proxy
+
+esp32_ble_tracker:
+  id: proxy_ble_tracker
+
+##### Z-Wave Proxy
+mdns:
+  services:
+    - service: &quot;_zwave&quot;
+      protocol: &quot;_tcp&quot;
+      port: 6053
+      txt:
+        protocol: &quot;esphome&quot;
+
+usb_uart:
+  - type: CDC_ACM
+    vid: 0x303A
+    pid: 0x4001
+    channels:
+      - id: uch_1
+        baud_rate: 115200
+        buffer_size: 1024
+
+zwave_proxy:
+  id: zw_proxy
+  uart_id: uch_1
+
+##### UARTs &amp; Serial Proxies
+uart:
+  - id: uart_rs232_port_1
+    tx_pin: 17
+    rx_pin: 18
+    baud_rate: 9600
+  - id: uart_rs232_port_2
+    tx_pin: 47
+    rx_pin: 48
+    baud_rate: 9600
+
+serial_proxy:
+  - id: rs232_proxy_1
+    uart_id: uart_rs232_port_1
+    name: RS-232 Port 1
+    port_type: RS232
+  - id: rs232_proxy_2
+    uart_id: uart_rs232_port_2
+    name: RS-232 Port 2
+    port_type: RS232
+
+##### I2C Components
+i2c:
+  # Audio codec
+  - id: i2c_audio
+    scl: 16
+    sda: 15
+    frequency: 400kHz
+    scan: true
+  # Grove
+  - id: i2s_grove
+    scl: 2
+    sda: 1
+    frequency: 400kHz
+    scan: true
+
+##### Audio Components
+i2s_audio:
+  - id: i2s_bus
+    i2s_bclk_pin: 5
+    i2s_mclk_pin: 4
+    i2s_lrclk_pin: 6
+
+audio_dac:
+  - platform: pcm5122
+    id: pcm5122_dac
+    i2c_id: i2c_audio
+    address: 0x4C   # Board straps ADR1=ADR2=0 (driver default is 0x4D)
+    enable_pin: 3   # Codec_XSMT (mute)
+
+speaker:
+  # Router speaker to allow user to select between the DAC and TOSLink outputs
+  - platform: router
+    id: audio_router_speaker
+    output_speakers:
+      - i2s_audio_dac_speaker
+      - i2s_audio_spdif_speaker
+    bits_per_sample: 16
+    num_channels: 2
+    sample_rate: 48000
+
+  # Hardware speaker output (via PCM5122 DAC)
+  - platform: i2s_audio
+    id: i2s_audio_dac_speaker
+    sample_rate: 48000
+    i2s_dout_pin: 7
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_bus
+    dac_type: external
+    channel: stereo
+    timeout: never
+    buffer_duration: 50ms
+    audio_dac: pcm5122_dac
+
+  # Hardware speaker output (via TOSLink)
+  - platform: i2s_audio
+    id: i2s_audio_spdif_speaker
+    sample_rate: 48000
+    i2s_dout_pin: 40
+    spdif_mode: true
+    bits_per_sample: 16bit
+    i2s_audio_id: i2s_bus
+    dac_type: external
+    channel: stereo
+    timeout: 5s
+    buffer_duration: 50ms
+    use_apll: true
+
+  # Virtual speakers to combine the announcement and media streams together into one output
+  - platform: mixer
+    id: mixing_speaker
+    task_stack_in_psram: true
+    output_speaker: audio_router_speaker
+    num_channels: 2
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+
+  # Virtual speakers to resample each pipeline&#x27;s audio, if necessary, as the mixer speaker requires the same sample rate
+  - platform: resampler
+    id: announcement_resampling_speaker
+    task_stack_in_psram: true
+    output_speaker: announcement_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+  - platform: resampler
+    id: media_resampling_speaker
+    task_stack_in_psram: true
+    output_speaker: media_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+##### Sendspin Configuration
+sendspin:
+  id: sendspin_hub
+  task_stack_in_psram: true
+
+audio:
+  codecs:
+    flac:
+      # buffer_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+    opus:
+      # state_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+      pseudostack:
+        # threadsafe: false # Unnecessary on an ESP32-S3; prevents decoding two Opus streams simultaneously
+
+media_source:
+  - platform: audio_http
+    id: announcement_http_source
+    task_stack_in_psram: true
+  - platform: audio_http
+    id: media_http_source
+    task_stack_in_psram: true
+  - platform: sendspin
+    id: sendspin_source
+    task_stack_in_psram: true
+    # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
+
+media_player:
+  - platform: speaker_source
+    id: external_media_player
+    name: Media Player
+    internal: false
+    volume_increment: 0.05
+    volume_min: 0.4
+    volume_max: 0.85
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      format: FLAC  # FLAC is the least processor intensive codec
+      num_channels: 1  # Stereo audio is unnecessary for announcements
+      sample_rate: 48000
+      sources:
+        - announcement_http_source
+    media_pipeline:
+      speaker: media_resampling_speaker
+      format: FLAC  # FLAC is the least processor intensive codec
+      num_channels: 2
+      sample_rate: 48000
+      sources:
+        - media_http_source
+        - sendspin_source
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
+          decibel_reduction: 20
+          duration: 0.0s
+
+##### Other Components
+select:
+  - platform: template
+    id: audio_output_selector
+    name: Audio Output
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - &quot;Analog&quot;
+      - &quot;Digital&quot;
+    on_value:
+      - router.speaker.switch_output:
+          id: audio_router_speaker
+          target_speaker: !lambda |-
+            if (x == &quot;Digital&quot;) {
+              return id(i2s_audio_spdif_speaker);
+            }
+            return id(i2s_audio_dac_speaker);
+
+power_supply:
+  - id: led_power
+    pin: 45
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: status_light
+    name: Status Light
+    entity_category: config
+    pin: 38
+    chipset: ws2812
+    rgb_order: GRB
+    num_leds: 1
+    power_supply: led_power
+    effects:
+      - strobe:
+      - addressable_rainbow:
+
+button:
+  - platform: restart
+    id: restart_button
+    name: Restart
+    entity_category: diagnostic
+  - platform: factory_reset
+    id: factory_reset_button
+    name: Wipe Preferences
+    entity_category: diagnostic
+
+switch:
+  - platform: gpio
+    id: grove_power_switch
+    name: Grove Power
+    pin: 46
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+  - platform: gpio
+    id: usb_device_power_switch
+    name: USB Device Power
+    pin: 42
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+  # Defaults OFF: jack-detect circuit only exists on v3+ hardware. On v2, GPIO 8
+  # is floating and the ADC reading is meaningless — leave the switch off.
+  - platform: template
+    id: auto_output_mode_switch
+    name: Automatic output mode selection
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    disabled_by_default: true
+    on_turn_on:
+      - lambda: |-
+          float v = id(jack_detect_voltage).state;
+          if (std::isnan(v)) return;
+          if (v &lt; 0.8f) {
+            auto call = id(audio_output_selector).make_call();
+            call.set_option(&quot;Analog&quot;);
+            call.perform();
+          } else if (v &gt; 2.0f) {
+            auto call = id(audio_output_selector).make_call();
+            call.set_option(&quot;Digital&quot;);
+            call.perform();
+          }
+
+sensor:
+  # 3.5 mm combo-jack detect (v3+ hardware only — pin floats on v2, so the
+  # auto_output_mode_switch defaults OFF). Voltage rails:
+  #   ~0.00 V → analog TRS plug
+  #   ~1.65 V → nothing inserted
+  #   ~2.20 V → TOSLink-mini plug
+  - platform: adc
+    pin: 8
+    id: jack_detect_voltage
+    # name: Audio Jack Detect Voltage
+    entity_category: diagnostic
+    attenuation: 12db
+    update_interval: 1s
+    on_value_range:
+      - below: 0.8
+        then:
+          - if:
+              condition:
+                switch.is_on: auto_output_mode_switch
+              then:
+                - select.set:
+                    id: audio_output_selector
+                    option: &quot;Analog&quot;
+      - above: 2.0
+        then:
+          - if:
+              condition:
+                switch.is_on: auto_output_mode_switch
+              then:
+                - select.set:
+                    id: audio_output_selector
+                    option: &quot;Digital&quot;
+</code></pre>
+  </details>
+  <details class="yaml-details">
+    <summary><span class="summary-content">OTA extension <a href="connect-proxy-common-v2-v3.factory.yaml" download class="download-link">Download</a></span></summary>
+    <pre><code># Factory firmware - generated by ewt-gen
+# Users should import connect-proxy-common-v2-v3.yaml directly, not this file.
+
+packages:
+  original: !include connect-proxy-common-v2-v3.yaml
+
+esphome:
+  project:
+    version: &quot;2026.8.0&quot;
+
+ota:
+  - platform: http_request
+    id: ota_http_request
+
+update:
+  - platform: http_request
+    id: update_http_request
+    name: Firmware
+    source: https://nabucasa.github.io/aux-2/prod/connect-proxy-common-v2-v3/manifest.json
+
+http_request:
+
+dashboard_import:
+  package_import_url: github://NabuCasa/aux-2/connect-proxy-common-v2-v3.yaml@2026.8.0
+</code></pre>
+  </details>
+</div>
+  </div>
+
+  <footer>
+    <p>
+      Generated on 2026-07-31 by <a href="https://github.com/esphome/ewt-gen" target="_blank">ewt-gen</a>.
+      Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Web Tools</a>
+      and <a href="https://esphome.io" target="_blank">ESPHome</a>
+      by the <a href="https://www.openhomefoundation.org/" target="_blank">Open Home Foundation</a>.
+    </p>
+  </footer>
+
+  <script>
+    if (!window.isSecureContext) {
+      document.body.classList.add('insecure');
+    }
+  </script>
+</body>
+</html>

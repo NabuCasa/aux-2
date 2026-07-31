@@ -1,0 +1,22 @@
+{
+  "name": "connect-proxy-common-v2-v3",
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware-esp32s3-2026.8.0.bin",
+          "offset": 0
+        }
+      ],
+      "ota": {
+        "path": "firmware-esp32s3-2026.8.0.ota.bin",
+        "md5": "c2ff51b32ea4268d98d8093300694be0",
+        "sha256": "a9700a1de7ce599793192d0560c904ea32871bf129a261440609192fefc9c39f",
+        "release_url": "https://github.com/NabuCasa/aux-2/commit/ae9e8e71221bb5bb17d1b8ef525f259544ad85ab"
+      }
+    }
+  ],
+  "version": "2026.8.0",
+  "home_assistant_domain": "esphome"
+}
