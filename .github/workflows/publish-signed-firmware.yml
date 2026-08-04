@@ -97,16 +97,14 @@ env:
   KMS_KEY_VERSION: "1"
   GCP_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && '387378c709403303949ed586f3d0534a9504977be2eba48c9e9c2a12395ecdb4' || '79e2479bb06ba42787e7c1fa8cfa8bc82dc618c08ffdd0198dca6d86619f1072' }}
   # AWS: the public half is fetched at run time via an OIDC-assumed role
-  # whose only permission is kms:GetPublicKey on this key.
-  # TRANSITION (first-run rotation, per bbangert): prod images' backup block
-  # is signed by the STAGING AWS key until cutover, so the prod variables and
-  # pin intentionally match staging. At cutover: update FW_PROD_AWS_ROLE_ARN
-  # + FW_PROD_AWS_KMS_KEY_ARN variables and the prod fingerprint below to the
-  # new aux-2-signing-prod-backup key values.
+  # whose only permission is kms:GetPublicKey on this key. Prod and staging
+  # now use separate AWS backup keys (the first-run bridge, where prod images
+  # were backed by the staging AWS key, is complete). Prod fingerprint is the
+  # DER-SHA256 of aux-2-signing-prod-backup.
   AWS_REGION: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_REGION || vars.FW_STAGING_AWS_REGION }}
   AWS_ROLE_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_ROLE_ARN || vars.FW_STAGING_AWS_ROLE_ARN }}
   AWS_KMS_KEY_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_KMS_KEY_ARN || vars.FW_STAGING_AWS_KMS_KEY_ARN }}
-  AWS_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' || '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' }}
+  AWS_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && 'f2ae0b5a8dbe32a6d728d26c09cfe5a645ef9a78a6612db06df8280c69a43582' || '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' }}
 
 jobs:
   publish:
