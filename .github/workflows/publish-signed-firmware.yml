@@ -197,6 +197,25 @@ jobs:
           openssl pkey -pubin -inform DER -in aws_signing_pubkey.der \
             -out aws_signing_pubkey.pem
 
+      # The release configs reference the trust-anchor digests via !secret, so
+      # ESPHome must resolve them when the site is rebuilt (even under
+      # --skip-compile, which never rebuilds firmware — the signed image is used
+      # as-is). Derive the digests from the public keys just fetched (the same
+      # values the build baked in) and write secrets.yaml; it is excluded from
+      # the config globs below.
+      - name: Write signing-key trust anchor (secrets.yaml)
+        shell: bash
+        run: |
+          set -euo pipefail
+          uvx --from esptool espsecure digest-sbv2-public-key \
+            --keyfile signing_pubkey.pem --output gcp_digest.bin
+          uvx --from esptool espsecure digest-sbv2-public-key \
+            --keyfile aws_signing_pubkey.pem --output aws_digest.bin
+          cat > secrets.yaml <<EOF
+          fw_key_digest_gcp: "$(od -An -v -tx1 gcp_digest.bin | tr -d ' \n')"
+          fw_key_digest_aws: "$(od -An -v -tx1 aws_digest.bin | tr -d ' \n')"
+          EOF
+
       - name: Download boot components from the unsigned build
         env:
           GH_TOKEN: ${{ github.token }}
@@ -217,7 +236,12 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          configs=(*.yaml)
+          configs=()
+          for config in *.yaml; do
+            # secrets.yaml holds the trust anchor, not a device config.
+            [[ "$config" == secrets.yaml ]] && continue
+            configs+=("$config")
+          done
           if [ ${#configs[@]} -eq 0 ]; then
             echo "No config files found."
             exit 1
@@ -383,6 +407,7 @@ jobs:
             echo ""
             for config in *.yaml; do
               [[ "$config" == *.factory.yaml ]] && continue
+              [[ "$config" == secrets.yaml ]] && continue
               name="$(basename "${config%.*}")"
               echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled → /${FW_ENV}/$name/"
             done
