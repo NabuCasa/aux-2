@@ -6,7 +6,7 @@ packages:
 
 esphome:
   project:
-    version: "2026.8.2"
+    version: "2026.8.4"
 
 ota:
   - platform: http_request
@@ -21,4 +21,4 @@ update:
 http_request:
 
 dashboard_import:
-  package_import_url: github://NabuCasa/aux-2/connect-proxy-common-v1.yaml@2026.8.2
+  package_import_url: github://NabuCasa/aux-2/connect-proxy-common-v1.yaml@2026.8.4

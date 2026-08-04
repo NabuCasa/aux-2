@@ -251,7 +251,7 @@
   </style>
 </head>
 <body>
-  <h1>connect-proxy-common-v1 <span class="version-badge">v2026.8.2</span></h1>
+  <h1>connect-proxy-common-v1 <span class="version-badge">v2026.8.4</span></h1>
 
   <div class="card install-section secure-only">
     <h2>Install Firmware</h2>
@@ -280,7 +280,7 @@
       <label for="tab-esp32s3">ESP32-S3</label>
     </div>
     <div class="tab-content content-esp32s3">
-  <div class="firmware-row"><span>Firmware</span> <a href="firmware-esp32s3-2026.8.2.bin" download class="download-link">Download</a></div>
+  <div class="firmware-row"><span>Firmware</span> <a href="firmware-esp32s3-2026.8.4.bin" download class="download-link">Download</a></div>
   <details class="yaml-details">
     <summary><span class="summary-content">Configuration <a href="connect-proxy-common-v1.yaml" download class="download-link">Download</a></span></summary>
     <pre><code>esphome:
@@ -325,13 +325,21 @@ esp32:
     advanced:
       nvs_encryption:
         key_id: 0
-      # External-signing mode: no key here. With Secure Boot V2 (rsa3072)
-      # the public key travels in each image&#x27;s signature block; binaries
-      # are signed after the build by Autograph, and
-      # publish-signed-firmware.yml verifies them against the KMS public
-      # key before publishing.
+      # External-signing mode: binaries are signed after the build by Autograph
+      # (never during it). The firmware trusts the keys listed below for OTA
+      # verification -- their block-format SHA-256 digests, compiled in as an
+      # immutable trust anchor an incoming image cannot enlarge. The digests are
+      # injected at build time via secrets.yaml, derived from the signing keys
+      # fetched from KMS and pinned by fingerprint (see
+      # upload-unsigned-firmware.yml), so a key rotation flows in from KMS with
+      # nothing to edit here. GCP is the primary signing key; AWS the
+      # cross-provider backup. publish-signed-firmware.yml separately verifies
+      # each signed image against these keys before publishing.
       signed_ota_verification:
         signing_scheme: rsa3072
+        verification_keys:
+          - !secret fw_key_digest_gcp
+          - !secret fw_key_digest_aws
       enable_ota_downgrade_protection: true
     sdkconfig_options:
       # Moves instructions and read only data from flash into PSRAM on boot.
@@ -736,7 +744,7 @@ packages:
 
 esphome:
   project:
-    version: &quot;2026.8.2&quot;
+    version: &quot;2026.8.4&quot;
 
 ota:
   - platform: http_request
@@ -751,7 +759,7 @@ update:
 http_request:
 
 dashboard_import:
-  package_import_url: github://NabuCasa/aux-2/connect-proxy-common-v1.yaml@2026.8.2
+  package_import_url: github://NabuCasa/aux-2/connect-proxy-common-v1.yaml@2026.8.4
 </code></pre>
   </details>
 </div>
