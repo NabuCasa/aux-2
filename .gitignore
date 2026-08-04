@@ -136,3 +136,6 @@ sdkconfig.*
 !sdkconfig.defaults
 
 .tests/
+
+# ESPHome secrets — generated in CI (trust-anchor digests), never committed
+secrets.yaml
