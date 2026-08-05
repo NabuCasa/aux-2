@@ -40,13 +40,21 @@ esp32:
     advanced:
       nvs_encryption:
         key_id: 0
-      # External-signing mode: no key here. With Secure Boot V2 (rsa3072)
-      # the public key travels in each image's signature block; binaries
-      # are signed after the build by Autograph, and
-      # publish-signed-firmware.yml verifies them against the KMS public
-      # key before publishing.
+      # External-signing mode: binaries are signed after the build by Autograph
+      # (never during it). The firmware trusts the keys listed below for OTA
+      # verification -- their block-format SHA-256 digests, compiled in as an
+      # immutable trust anchor an incoming image cannot enlarge. The digests are
+      # injected at build time via secrets.yaml, derived from the signing keys
+      # fetched from KMS and pinned by fingerprint (see
+      # upload-unsigned-firmware.yml), so a key rotation flows in from KMS with
+      # nothing to edit here. GCP is the primary signing key; AWS the
+      # cross-provider backup. publish-signed-firmware.yml separately verifies
+      # each signed image against these keys before publishing.
       signed_ota_verification:
         signing_scheme: rsa3072
+        verification_keys:
+          - !secret fw_key_digest_gcp
+          - !secret fw_key_digest_aws
       enable_ota_downgrade_protection: true
     sdkconfig_options:
       # Moves instructions and read only data from flash into PSRAM on boot.
