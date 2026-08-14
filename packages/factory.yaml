@@ -1,0 +1,26 @@
+esp32:
+  framework:
+    advanced:
+      # Compiled-in OTA trust anchor; key digests are derived from KMS and
+      # written to secrets.yaml at build time (upload-unsigned-firmware.yml).
+      signed_ota_verification:
+        signing_scheme: rsa3072
+        verification_keys:
+          - !secret fw_key_digest_gcp
+          - !secret fw_key_digest_aws
+      enable_ota_downgrade_protection: true
+
+external_components:
+  - source: github://pr#17598
+    components: [improv_serial]
+    refresh: always
+
+esp32_improv:
+  id: esp32_improv_component
+  authorizer: none
+
+improv_serial:
+  id: improv_serial_component
+
+provisioning:
+  timeout: 15min

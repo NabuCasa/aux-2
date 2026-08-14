@@ -142,7 +142,7 @@ void W5500LinkMonitor::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "W5500 Link Monitor:\n"
                 "  Interface: spi%d\n"
-                "  Clock Speed: %u MHz\n"
+                "  Clock Speed: %" PRIu32 " MHz\n"
                 "  CLK Pin: GPIO%u\n"
                 "  MISO Pin: GPIO%u\n"
                 "  MOSI Pin: GPIO%u\n"
