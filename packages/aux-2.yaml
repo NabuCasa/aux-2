@@ -1,10 +1,10 @@
 esphome:
-  friendly_name: Home Assistant Connect Aux-2
+  friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
   name_add_mac_suffix: true
   min_version: 2026.7.0
   project:
-    name: Nabu Casa.Home Assistant Connect Aux-2
+    name: Nabu Casa.Home Assistant Connect AUX-2
     version: 2026.7.2
   on_boot:
     # Must run before improv_serial::setup() but still after the
@@ -48,7 +48,7 @@ esp32:
 psram:
   mode: octal
   speed: 80MHz
-  ignore_not_found: false  # Aux-2 has PSRAM, so this is safe
+  ignore_not_found: false  # AUX-2 has PSRAM, so this is safe
 
 external_components:
   - source:
