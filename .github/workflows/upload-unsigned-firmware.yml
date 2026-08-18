@@ -211,11 +211,27 @@ jobs:
           mkdir -p site boot
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
-            echo "Building $config"
+
+            # Adoption ("take control") URL compiled into the firmware. Must be
+            # explicit: without it ewt-gen derives one from the Actions context,
+            # pointing at this wrapper (whose !secret trust-anchor refs users
+            # cannot resolve) at this build's ref (a stale tag, on prod builds).
+            # Point at the wrapper's CORE package on main instead, so adopting
+            # users always compile the current secret-free device config. The
+            # core package path is permanent once shipped — devices that never
+            # update will resolve it indefinitely.
+            core_pkg="$(sed -n 's/^[[:space:]]*core:[[:space:]]*!include[[:space:]]*//p' "$config" | head -1)"
+            if [ -z "$core_pkg" ] || [ ! -f "$core_pkg" ]; then
+              echo "Could not resolve the core package include in $config (got: '${core_pkg}')" >&2
+              exit 1
+            fi
+
+            echo "Building $config (import-url -> $core_pkg)"
             uvx ewt-gen --dev "$config" \
               -t "$name" \
               -o "site/$name" \
               --publish-url "${PAGES_BASE_URL%/}/${FW_ENV}/$name" \
+              --import-url "github://${GITHUB_REPOSITORY}/${core_pkg}@main" \
               --fw-version "$FW_VERSION"
 
             # Retain this build's boot components (everything flasher_args.json
