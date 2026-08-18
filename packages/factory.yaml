@@ -34,9 +34,11 @@ external_components:
     refresh: always
 
 script:
-  # Install any pending firmware update once the network is up.
-  # update_http_request is defined by the ewt-gen-generated wrapper, so this
-  # package only validates when compiled through it (CI always does).
+  # Install any pending firmware update once the network is up. The update
+  # entity only exists in the ewt-gen-generated wrapper (and only when built
+  # with a version), so it is reached via USE_UPDATE-guarded lambdas: bare
+  # configs — including ewt-gen's pre-wrap resolution pass — still validate
+  # and compile, where this script becomes a no-op.
   - id: install_update_on_boot
     then:
       - wait_until:
@@ -44,14 +46,26 @@ script:
             or:
               - wifi.connected:
               - ethernet.connected:
-      - update.check: update_http_request
+      - lambda: |-
+          #ifdef USE_UPDATE
+          for (auto *u : App.get_updates())
+            u->check();
+          #endif
       - wait_until:
           condition:
-            update.is_available: update_http_request
+            lambda: |-
+              #ifdef USE_UPDATE
+              for (auto *u : App.get_updates()) {
+                if (u->state == update::UPDATE_STATE_AVAILABLE)
+                  return true;
+              }
+              #endif
+              return false;
           timeout: 60s
-      - if:
-          condition:
-            update.is_available: update_http_request
-          then:
-            - update.perform:
-                id: update_http_request
+      - lambda: |-
+          #ifdef USE_UPDATE
+          for (auto *u : App.get_updates()) {
+            if (u->state == update::UPDATE_STATE_AVAILABLE)
+              u->perform();
+          }
+          #endif
