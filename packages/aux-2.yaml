@@ -16,17 +16,19 @@ esphome:
     # reboot, driven by w5500_link_monitor (in Wi-Fi mode, on cable insert),
     # ethernet.on_disconnect (in Ethernet mode, on cable removal), or
     # eth_boot_connect_check (in Ethernet mode, no cable/IP at boot).
-    priority: 205
-    then:
-      - if:
-          condition:
-            lambda: 'return id(use_wifi);'
-          then:
-            - wifi.enable:
-            - w5500_link_monitor.start: link_monitor
-          else:
-            - ethernet.enable:
-            - script.execute: eth_boot_connect_check
+    # List form so overlay packages (factory.yaml) can append their own
+    # on_boot automation without deep-merging into this one.
+    - priority: 205
+      then:
+        - if:
+            condition:
+              lambda: 'return id(use_wifi);'
+            then:
+              - wifi.enable:
+              - w5500_link_monitor.start: link_monitor
+            else:
+              - ethernet.enable:
+              - script.execute: eth_boot_connect_check
 
 esp32:
   board: esp32-s3-devkitc-1

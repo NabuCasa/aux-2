@@ -1,3 +1,11 @@
+esphome:
+  on_boot:
+    # List form: concatenates with the core package's on_boot automation
+    # instead of deep-merging into it (which would clobber its priority).
+    - priority: -100.0
+      then:
+        - script.execute: install_update_on_boot
+
 esp32:
   framework:
     advanced:
@@ -10,11 +18,6 @@ esp32:
           - !secret fw_key_digest_aws
       enable_ota_downgrade_protection: true
 
-external_components:
-  - source: github://pr#17598
-    components: [improv_serial]
-    refresh: always
-
 esp32_improv:
   id: esp32_improv_component
   authorizer: none
@@ -24,3 +27,31 @@ improv_serial:
 
 provisioning:
   timeout: 15min
+
+external_components:
+  - source: github://pr#17598
+    components: [improv_serial]
+    refresh: always
+
+script:
+  # Install any pending firmware update once the network is up.
+  # update_http_request is defined by the ewt-gen-generated wrapper, so this
+  # package only validates when compiled through it (CI always does).
+  - id: install_update_on_boot
+    then:
+      - wait_until:
+          condition:
+            or:
+              - wifi.connected:
+              - ethernet.connected:
+      - update.check: update_http_request
+      - wait_until:
+          condition:
+            update.is_available: update_http_request
+          timeout: 60s
+      - if:
+          condition:
+            update.is_available: update_http_request
+          then:
+            - update.perform:
+                id: update_http_request
