@@ -5,18 +5,18 @@
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "firmware-esp32s3-2026.08.13.24.bin",
+          "path": "firmware-esp32s3-2026.08.17.27.bin",
           "offset": 0
         }
       ],
       "ota": {
-        "path": "firmware-esp32s3-2026.08.13.24.ota.bin",
-        "md5": "774d94b639654f026698e0b121753f07",
-        "sha256": "cfe2d01f767e0ee6e99597d29d114372ebea543c7c918b7981aa0679e3934a80",
-        "release_url": "https://github.com/NabuCasa/aux-2/commit/bf2214ea267a52a397cc929c84641538b94e935f"
+        "path": "firmware-esp32s3-2026.08.17.27.ota.bin",
+        "md5": "b70723e38d2204a7123bfcdf68fca778",
+        "sha256": "fff5f368447b6851d9ee59fa1aafa1ad5082e3d19eb432fab9b87ba8d7f41b7d",
+        "release_url": "https://github.com/NabuCasa/aux-2/commit/ea7c2dd46cfbb81243a671867b0400c28093f073"
       }
     }
   ],
-  "version": "2026.08.13.24",
+  "version": "2026.08.17.27",
   "home_assistant_domain": "esphome"
 }

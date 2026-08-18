@@ -6,7 +6,7 @@ packages:
 
 esphome:
   project:
-    version: "2026.08.13.24"
+    version: "2026.08.17.27"
 
 ota:
   - platform: http_request
