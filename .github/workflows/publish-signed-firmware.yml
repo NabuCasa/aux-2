@@ -15,13 +15,12 @@
 #   5. extracts the app back out of the factory image and re-verifies it; and
 #   6. rebuilds this environment's half of the firmware pages and deploys.
 #
-# Site layout: the deployed site is /staging/<config>/ + /prod/<config>/.
-# Because a Pages deploy replaces the whole site, the assembled site persists
-# on the machine-managed `pages-site` branch: each publish refreshes only its
+# Site layout: the deployed site is /staging/<config>/ + /prod/<config>/ ONLY.
+# Root-level config paths are not served (the pre-split legacy mirror is
+# retired; that fleet is orphaned by the target rename). Because a Pages
+# deploy replaces the whole site, the assembled site persists on the
+# machine-managed `pages-site` branch: each publish refreshes only its
 # environment's subtree, commits the merged result, and deploys that.
-# TRANSITION: staging content is also mirrored at the legacy root paths
-# (/<config>/) because fleet firmware built before the split polls manifests
-# there. Remove the mirror once the fleet runs firmware that polls /staging/.
 #
 # Never combine a signed app with boot components from a different build:
 # environment, version, commit, and boot_run_id must all refer to the same
@@ -248,11 +247,13 @@ jobs:
           fi
 
           # Start from the previously published site and replace only this
-          # environment's subtree.
+          # environment's subtree. Root-level config dirs are legacy (retired
+          # pre-split mirror) — prune any that persist in the site state.
           mkdir -p site signed
           rsync -a --exclude=.git .site-state/ site/
           rm -rf "site/${FW_ENV}"
           mkdir -p "site/${FW_ENV}"
+          find site -mindepth 1 -maxdepth 1 -type d ! -name staging ! -name prod -exec rm -rf {} +
 
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
@@ -349,18 +350,6 @@ jobs:
             done
             echo '</ul></body></html>'
           } > "site/${FW_ENV}/index.html"
-
-          # TRANSITION: mirror staging content at the legacy root paths —
-          # fleet firmware built before the environment split polls its
-          # update manifest at /<config>/. Remove once the fleet runs
-          # firmware that polls /staging/.
-          if [ "${FW_ENV}" = "staging" ]; then
-            for config in "${configs[@]}"; do
-              name="$(basename "${config%.*}")"
-              rm -rf "site/$name"
-              cp -R "site/staging/$name" "site/$name"
-            done
-          fi
 
           # Root index: link whichever environments have been published.
           {
