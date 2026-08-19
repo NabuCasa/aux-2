@@ -1,0 +1,11 @@
+# Factory build/signing target for pre-production hardware. Basename = Autograph
+# target id + fleet OTA channel path; renaming needs re-registration and orphans
+# the old channel.
+packages:
+  core: !include packages/aux-2-pre-prod.yaml
+  factory: !include packages/factory.yaml
+
+# ewt-gen reads the device name from this file only (packages are not
+# resolved); must match the name in the core package.
+esphome:
+  name: connect-aux-2

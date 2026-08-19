@@ -1,5 +1,6 @@
 # Factory build/signing target for pre-production hardware. Basename = Autograph
-# target id and fleet OTA channel path — do not rename.
+# target id + fleet OTA channel path; renaming needs re-registration and orphans
+# the old channel.
 packages:
   core: !include packages/aux-2-pre-prod.yaml
   factory: !include packages/factory.yaml
