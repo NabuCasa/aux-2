@@ -1,0 +1,22 @@
+{
+  "name": "connect-aux-2",
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware-esp32s3-2026.8.8.bin",
+          "offset": 0
+        }
+      ],
+      "ota": {
+        "path": "firmware-esp32s3-2026.8.8.ota.bin",
+        "md5": "d9f7f5bd338856890cbffe40a2102669",
+        "sha256": "37a2d6ecb89daeb6555b8e5e9737df1d020f0f3796b41801e13c922b9096048e",
+        "release_url": "https://github.com/NabuCasa/aux-2/commit/5a3d962817a12745291c1f0403498ef574e5162c"
+      }
+    }
+  ],
+  "version": "2026.8.8",
+  "home_assistant_domain": "esphome"
+}
