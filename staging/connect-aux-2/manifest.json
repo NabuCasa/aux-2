@@ -13,7 +13,7 @@
         "path": "firmware-esp32s3-2026.08.18.31.ota.bin",
         "md5": "01899a3e71ca8578ac541c960628cf2b",
         "sha256": "ba86fb5ee5b4530eb4b44573fbfa75093e469a40a5ab618a578da5352ae582a5",
-        "release_url": "https://github.com/NabuCasa/aux-2/commit/5a3d962817a12745291c1f0403498ef574e5162c"
+        "release_url": "https://github.com/NabuCasa/aux-2/commit/67b90eb7518b60a9509737d180f58b72d45638cf"
       }
     }
   ],
