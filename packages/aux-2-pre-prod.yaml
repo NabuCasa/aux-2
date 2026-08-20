@@ -492,8 +492,9 @@ button:
     entity_category: diagnostic
   - platform: factory_reset
     id: factory_reset_button
-    name: Wipe Preferences
+    name: Factory Reset
     entity_category: diagnostic
+    disabled_by_default: true
 
 switch:
   - platform: gpio
