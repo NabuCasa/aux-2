@@ -6,9 +6,9 @@
 #
 # Environment routing: pushes to main (and manual dispatches) build for
 # STAGING; pushing a CalVer version tag (e.g. 2026.8.0) builds for
-# PRODUCTION. The environment
-# decides the Autograph instance (project/bucket/WIF) and the /staging/ or
-# /prod/ site prefix baked into the compiled OTA update component — prod and
+# PRODUCTION. The environment decides the Autograph instance
+# (project/bucket/WIF) and the firmware.nabucasa.com channel manifest baked
+# into the compiled update component (FW_CHANNEL_MANIFEST) — prod and
 # staging firmware trust different signing keys and must never mix channels.
 #
 # This workflow deploys nothing: the site it generates as a compile by-product
@@ -27,13 +27,11 @@ on:
     tags:
       - "[0-9]*"
 
-# OIDC token minting requires id-token: write. pages: read lets
-# configure-pages resolve the site base URL that ewt-gen bakes into the
-# compiled OTA update component. Everything else stays read-only.
+# OIDC token minting requires id-token: write; everything else stays
+# read-only.
 permissions:
   contents: read
   id-token: write
-  pages: read
 
 concurrency:
   group: fw-upload-${{ github.ref }}
@@ -80,13 +78,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      # Only needed for the base URL ewt-gen bakes into the compiled OTA
-      # update component (--publish-url) — the URL the signed site will be
-      # served from. This workflow does not deploy the site itself.
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
@@ -191,8 +182,11 @@ jobs:
       - name: Build firmware with ewt-gen
         shell: bash
         env:
-          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          # Resolved by the configs themselves (!env_var): FW_VERSION stamps
+          # esphome.project.version; FW_CHANNEL_MANIFEST picks the update
+          # channel the firmware polls on firmware.nabucasa.com.
           FW_VERSION: ${{ steps.version.outputs.version }}
+          FW_CHANNEL_MANIFEST: ${{ startsWith(github.ref, 'refs/tags/') && 'manifest.json' || 'manifest-staging.json' }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -212,26 +206,16 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
 
-            # Adoption ("take control") URL compiled into the firmware. Must be
-            # explicit: without it ewt-gen derives one from the Actions context,
-            # pointing at this wrapper (whose !secret trust-anchor refs users
-            # cannot resolve) at this build's ref (a stale tag, on prod builds).
-            # Point at the wrapper's CORE package on main instead, so adopting
-            # users always compile the current secret-free device config. The
-            # core package path is permanent once shipped — devices that never
-            # update will resolve it indefinitely.
-            core_pkg="$(sed -n 's/^[[:space:]]*core:[[:space:]]*!include[[:space:]]*//p' "$config" | head -1)"
-            if [ -z "$core_pkg" ] || [ ! -f "$core_pkg" ]; then
-              echo "Could not resolve the core package include in $config (got: '${core_pkg}')" >&2
-              exit 1
-            fi
-
-            echo "Building $config (import-url -> $core_pkg)"
+            # No --publish-url / --import-url: the configs now declare their
+            # own update/ota entities (channel manifest on
+            # firmware.nabucasa.com) and dashboard_import, so ewt-gen's
+            # generated overlay is no longer wanted in the firmware. ewt-gen
+            # still compiles and lays out the site output the staging step
+            # below expects.
+            echo "Building $config (${FW_CHANNEL_MANIFEST})"
             uvx ewt-gen --dev "$config" \
               -t "$name" \
               -o "site/$name" \
-              --publish-url "${PAGES_BASE_URL%/}/${FW_ENV}/$name" \
-              --import-url "github://${GITHUB_REPOSITORY}/${core_pkg}@main" \
               --fw-version "$FW_VERSION"
 
             # Retain this build's boot components (everything flasher_args.json
