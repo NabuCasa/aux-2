@@ -1,3 +1,8 @@
+# Release version stamped by CI; local/user builds default to 0.0.0
+# (downgrade protection requires dotted-numeric).
+substitutions:
+  fw_version: !env_var FW_VERSION 0.0.0
+
 esphome:
   friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
@@ -5,7 +10,7 @@ esphome:
   min_version: 2026.7.0
   project:
     name: Nabu Casa.Home Assistant Connect AUX-2
-    version: 2026.7.2
+    version: ${fw_version}
   on_boot:
     # Must run before improv_serial::setup() but still after the
     # 250-priority network components (wifi (250), ethernet (250)), and

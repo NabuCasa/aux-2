@@ -9,3 +9,14 @@ packages:
 # resolved); must match the name in the core package.
 esphome:
   name: connect-aux-2
+
+# Pre-production hardware has no prod channel — pinned to staging regardless
+# of the build environment.
+substitutions:
+  fw_manifest_base: https://firmware.nabucasa.com/aux-2/connect-aux-2-pre-prod
+  fw_channel_manifest: manifest-staging.json
+
+# Factory firmware only — adopted user configs (the core package) must not
+# re-advertise adoption.
+dashboard_import:
+  package_import_url: github://NabuCasa/aux-2/packages/aux-2-pre-prod.yaml@main
