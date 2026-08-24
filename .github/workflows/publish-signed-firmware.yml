@@ -12,20 +12,10 @@
 #   4. assembles firmware.signed.factory.bin by merging the signed app with
 #      the boot components retained by the unsigned build for the SAME commit
 #      (Autograph never builds factory images — only the app is signed);
-#   5. extracts the app back out of the factory image and re-verifies it;
-#   6. publishes the verified artifacts to the S3 serving layer
+#   5. extracts the app back out of the factory image and re-verifies it; and
+#   6. publishes the verified artifacts to the serving layer
 #      (firmware.nabucasa.com): permanent versioned paths plus this
-#      channel's mutable pointer manifest; and
-#   7. rebuilds this environment's half of the firmware pages and deploys
-#      (TRANSITION: Pages remains the live channel until firmware baking
-#      firmware.nabucasa.com URLs ships; then this step is removed).
-#
-# Site layout: the deployed site is /staging/<config>/ + /prod/<config>/ ONLY.
-# Root-level config paths are not served (the pre-split legacy mirror is
-# retired; that fleet is orphaned by the target rename). Because a Pages
-# deploy replaces the whole site, the assembled site persists on the
-# machine-managed `pages-site` branch: each publish refreshes only its
-# environment's subtree, commits the merged result, and deploys that.
+#      channel's mutable pointer manifest.
 #
 # Never combine a signed app with boot components from a different build:
 # environment, version, commit, and boot_run_id must all refer to the same
@@ -34,7 +24,7 @@
 # There are no GitHub secrets: bucket read is via Workload Identity
 # Federation, and the artifact download uses the built-in GITHUB_TOKEN.
 
-name: Publish signed firmware pages
+name: Publish signed firmware
 
 run-name: Publish signed ${{ inputs.environment }} ${{ inputs.version }} (${{ inputs.commit }})
 
@@ -58,18 +48,17 @@ on:
         description: "Run ID of the unsigned build holding the boot-<commit> artifact"
         required: true
 
-# id-token: write mints the OIDC token exchanged for scoped bucket/KMS reads
-# (GCP WIF and the AWS role); actions: read lets `gh run download` fetch the
-# boot-component artifact; contents: write pushes the assembled site to the
-# machine-managed pages-site branch; pages: write deploys it.
+# id-token: write mints the OIDC token exchanged for scoped bucket/KMS/S3
+# access; actions: read lets `gh run download` fetch the boot-component
+# artifact.
 permissions:
-  contents: write
+  contents: read
   id-token: write
-  pages: write
   actions: read
 
+# Serializes channel-manifest promotions.
 concurrency:
-  group: pages
+  group: publish
   cancel-in-progress: false
 
 env:
@@ -143,24 +132,11 @@ jobs:
             fi
           done
 
-      # The configs and public key must come from the exact commit that was
-      # built and signed, not from the current main.
+      # The configs must come from the exact commit that was built and signed.
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.commit }}
-
-      # The previously published site — this publish replaces only the
-      # ${FW_ENV} subtree and re-deploys the merged whole.
-      - name: Checkout published site state
-        uses: actions/checkout@v4
-        with:
-          ref: pages-site
-          path: .site-state
-
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
@@ -207,25 +183,6 @@ jobs:
           openssl pkey -pubin -inform DER -in aws_signing_pubkey.der \
             -out aws_signing_pubkey.pem
 
-      # The release configs reference the trust-anchor digests via !secret, so
-      # ESPHome must resolve them when the site is rebuilt (even under
-      # --skip-compile, which never rebuilds firmware — the signed image is used
-      # as-is). Derive the digests from the public keys just fetched (the same
-      # values the build baked in) and write secrets.yaml; it is excluded from
-      # the config globs below.
-      - name: Write signing-key trust anchor (secrets.yaml)
-        shell: bash
-        run: |
-          set -euo pipefail
-          uvx --from esptool espsecure digest-sbv2-public-key \
-            --keyfile signing_pubkey.pem --output gcp_digest.bin
-          uvx --from esptool espsecure digest-sbv2-public-key \
-            --keyfile aws_signing_pubkey.pem --output aws_digest.bin
-          cat > secrets.yaml <<EOF
-          fw_key_digest_gcp: "$(od -An -v -tx1 gcp_digest.bin | tr -d ' \n')"
-          fw_key_digest_aws: "$(od -An -v -tx1 aws_digest.bin | tr -d ' \n')"
-          EOF
-
       - name: Download boot components from the unsigned build
         env:
           GH_TOKEN: ${{ github.token }}
@@ -241,14 +198,12 @@ jobs:
         env:
           VERSION: ${{ github.event.inputs.version }}
           COMMIT: ${{ github.event.inputs.commit }}
-          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           set -euo pipefail
           shopt -s nullglob
 
           configs=()
           for config in *.yaml; do
-            # secrets.yaml holds the trust anchor, not a device config.
             [[ "$config" == secrets.yaml ]] && continue
             configs+=("$config")
           done
@@ -257,15 +212,7 @@ jobs:
             exit 1
           fi
 
-          # Start from the previously published site and replace only this
-          # environment's subtree. Root-level config dirs are legacy (retired
-          # pre-split mirror) — prune any that persist in the site state.
-          mkdir -p site signed
-          rsync -a --exclude=.git .site-state/ site/
-          rm -rf "site/${FW_ENV}"
-          mkdir -p "site/${FW_ENV}"
-          find site -mindepth 1 -maxdepth 1 -type d ! -name staging ! -name prod -exec rm -rf {} +
-
+          mkdir -p signed
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             base="${name}/${VERSION}/${COMMIT}"
@@ -334,46 +281,7 @@ jobs:
               --keyfile signing_pubkey.pem "$out/app-extracted.bin"
             uvx --from esptool espsecure verify-signature --version 2 \
               --keyfile aws_signing_pubkey.pem "$out/app-extracted.bin"
-
-            # Rebuild this config's firmware page around the SIGNED binaries:
-            # ewt-gen picks up <config>.factory.bin / <config>.ota.bin before
-            # looking in build directories, and --skip-compile uses them
-            # as-is. --dev is still required: even without compiling, ewt-gen
-            # resolves the config through ESPHome, and the configs need the
-            # same ESPHome flavor they were built with.
-            cp "$out/firmware.signed.factory.bin" "${config%.*}.factory.bin"
-            cp "$out/firmware.signed.ota.bin" "${config%.*}.ota.bin"
-            uvx ewt-gen --dev --skip-compile "$config" \
-              -t "$name" \
-              -o "site/${FW_ENV}/$name" \
-              --publish-url "${PAGES_BASE_URL%/}/${FW_ENV}/$name" \
-              --fw-version "${VERSION}"
           done
-
-          # Environment index
-          {
-            echo '<!doctype html>'
-            echo "<html><head><meta charset=\"utf-8\"><title>Firmware pages (${FW_ENV})</title><meta name=\"viewport\" content=\"width=device-width\"><style>li { margin: 4px 0 }</style></head><body>"
-            echo "<h1>Firmware pages (${FW_ENV})</h1><ul>"
-            for config in "${configs[@]}"; do
-              name="$(basename "${config%.*}")"
-              echo "<li><a href=\"./$name/\">$name</a></li>"
-            done
-            echo '</ul></body></html>'
-          } > "site/${FW_ENV}/index.html"
-
-          # Root index: link whichever environments have been published.
-          {
-            echo '<!doctype html>'
-            echo '<html><head><meta charset="utf-8"><title>Firmware pages</title><meta name="viewport" content="width=device-width"><style>li { margin: 4px 0 }</style></head><body>'
-            echo '<h1>Firmware pages</h1><ul>'
-            for envdir in staging prod; do
-              if [ -d "site/$envdir" ]; then
-                echo "<li><a href=\"./$envdir/\">$envdir</a></li>"
-              fi
-            done
-            echo '</ul></body></html>'
-          } > site/index.html
 
       # Everything below needing AWS switches identity: the pubkey-reader
       # credentials are no longer required (keys already fetched and pinned),
@@ -401,9 +309,6 @@ jobs:
 
           for config in *.yaml; do
             [[ "$config" == secrets.yaml ]] && continue
-            # ewt-gen wrote derived <config>.factory.yaml files in the site
-            # step above; they are not device configs.
-            [[ "$config" == *.factory.yaml ]] && continue
             name="$(basename "${config%.*}")"
             out="signed/$name"
             dest="${S3_BASE}/${name}"
@@ -463,27 +368,6 @@ jobs:
             fi
           done
 
-      # Persist the merged site so the next publish (either environment)
-      # starts from it.
-      - name: Persist site state to pages-site branch
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-          COMMIT: ${{ github.event.inputs.commit }}
-        run: |
-          set -euo pipefail
-          rsync -a --delete --exclude=.git site/ .site-state/
-          cd .site-state
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Publish ${FW_ENV} ${VERSION} (${COMMIT})" || echo "Site unchanged"
-          git push origin HEAD:pages-site
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
       - name: Publish summary
         env:
           VERSION: ${{ github.event.inputs.version }}
@@ -491,23 +375,11 @@ jobs:
         run: |
           shopt -s nullglob
           {
-            echo "## Signed firmware verified & assembled (${FW_ENV})"
+            echo "## Signed firmware published (${FW_ENV})"
             echo ""
             for config in *.yaml; do
-              [[ "$config" == *.factory.yaml ]] && continue
               [[ "$config" == secrets.yaml ]] && continue
               name="$(basename "${config%.*}")"
-              echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled → /${FW_ENV}/$name/"
+              echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled, published to https://firmware.nabucasa.com/aux-2/$name/${VERSION}/"
             done
           } >> "$GITHUB_STEP_SUMMARY"
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: publish
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

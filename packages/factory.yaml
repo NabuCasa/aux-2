@@ -43,6 +43,15 @@ update:
     name: Firmware
     source: ${fw_manifest_base}/${fw_channel_manifest}
 
+switch:
+  - platform: template
+    id: auto_update_switch
+    name: Automatic Updates
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    disabled_by_default: true
+
 external_components:
   - source: github://pr#17598
     components: [improv_serial]
@@ -54,31 +63,35 @@ script:
   # cores) still validate and compile, where this script becomes a no-op.
   - id: install_update_on_boot
     then:
-      - wait_until:
+      - if:
           condition:
-            or:
-              - wifi.connected:
-              - ethernet.connected:
-      - lambda: |-
-          #ifdef USE_UPDATE
-          for (auto *u : App.get_updates())
-            u->check();
-          #endif
-      - wait_until:
-          condition:
-            lambda: |-
-              #ifdef USE_UPDATE
-              for (auto *u : App.get_updates()) {
-                if (u->state == update::UPDATE_STATE_AVAILABLE)
-                  return true;
-              }
-              #endif
-              return false;
-          timeout: 60s
-      - lambda: |-
-          #ifdef USE_UPDATE
-          for (auto *u : App.get_updates()) {
-            if (u->state == update::UPDATE_STATE_AVAILABLE)
-              u->perform();
-          }
-          #endif
+            switch.is_on: auto_update_switch
+          then:
+            - wait_until:
+                condition:
+                  or:
+                    - wifi.connected:
+                    - ethernet.connected:
+            - lambda: |-
+                #ifdef USE_UPDATE
+                for (auto *u : App.get_updates())
+                  u->check();
+                #endif
+            - wait_until:
+                condition:
+                  lambda: |-
+                    #ifdef USE_UPDATE
+                    for (auto *u : App.get_updates()) {
+                      if (u->state == update::UPDATE_STATE_AVAILABLE)
+                        return true;
+                    }
+                    #endif
+                    return false;
+                timeout: 60s
+            - lambda: |-
+                #ifdef USE_UPDATE
+                for (auto *u : App.get_updates()) {
+                  if (u->state == update::UPDATE_STATE_AVAILABLE)
+                    u->perform();
+                }
+                #endif
