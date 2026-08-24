@@ -233,6 +233,18 @@ jobs:
             fi
             mkdir -p "boot/$name"
             cp "$fa" "boot/$name/"
+
+            # Harvest the signable app image too: the sector-padded unsigned
+            # OTA image ESPHome writes to the build directory. (ewt-gen only
+            # copies it into the site when given --publish-url, which we no
+            # longer pass — the firmware carries its own update entities.)
+            if [ ! -f "$build_dir/firmware.ota.bin" ]; then
+              echo "firmware.ota.bin missing for $config" >&2
+              exit 1
+            fi
+            mkdir -p "unsigned/$name"
+            cp "$build_dir/firmware.ota.bin" "unsigned/$name/firmware.ota.bin"
+
             app_file="$(jq -r '.app.file' "$fa")"
             while IFS= read -r f; do
               [ "$f" = "$app_file" ] && continue
@@ -265,15 +277,14 @@ jobs:
             # The signable artifact is the sector-padded unsigned APP image
             # (built with CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES disabled):
             # Secure Boot v2 signing appends its signature block to this
-            # image, and it is what OTA installs and verifies. ewt-gen copies
-            # it into the site as firmware-<chip>-<version>.ota.bin. The
-            # factory image is a merged flash image (bootloader + partition
-            # table + app) and is NOT directly signable — the signed factory
-            # image is assembled around the signed app by
-            # publish-signed-firmware.yml.
-            bins=( "site/$name"/firmware-*.ota.bin )
-            if [ ${#bins[@]} -ne 1 ]; then
-              echo "Expected exactly one app image for $name, found ${#bins[@]}" >&2
+            # image, and it is what OTA installs and verifies — harvested
+            # from the build directory by the build step above. The factory
+            # image is a merged flash image (bootloader + partition table +
+            # app) and is NOT directly signable — the signed factory image
+            # is assembled around the signed app by publish-signed-firmware.yml.
+            bins=( "unsigned/$name/firmware.ota.bin" )
+            if [ ! -f "${bins[0]}" ]; then
+              echo "Missing harvested app image for $name" >&2
               exit 1
             fi
 
