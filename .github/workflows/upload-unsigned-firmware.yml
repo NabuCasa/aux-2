@@ -2,7 +2,7 @@
 # image plus a build-info.json manifest to the Autograph unsigned bucket via
 # Workload Identity Federation. Signing is a human action in the Autograph
 # dashboard; after approval, publish-signed-firmware.yml assembles the factory
-# image around the signed app and deploys the firmware pages.
+# image around the signed app and publishes it to firmware.nabucasa.com.
 #
 # Environment routing: pushes to main (and manual dispatches) build for
 # STAGING; pushing a CalVer version tag (e.g. 2026.8.0) builds for
@@ -11,8 +11,8 @@
 # into the compiled update component (FW_CHANNEL_MANIFEST) — prod and
 # staging firmware trust different signing keys and must never mix channels.
 #
-# This workflow deploys nothing: the site it generates as a compile by-product
-# is discarded, because a site built here would carry the UNSIGNED binaries.
+# This workflow publishes nothing: signing and publishing happen after
+# human approval, and nothing built here is signed yet.
 #
 # Authentication is entirely via the repository's OIDC token — no GitHub
 # secrets are configured for this workflow.
@@ -206,12 +206,8 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
 
-            # No --publish-url / --import-url: the configs now declare their
-            # own update/ota entities (channel manifest on
-            # firmware.nabucasa.com) and dashboard_import, so ewt-gen's
-            # generated overlay is no longer wanted in the firmware. ewt-gen
-            # still compiles and lays out the site output the staging step
-            # below expects.
+            # The configs declare their own update/ota entities and
+            # dashboard_import — no ewt-gen overlay flags.
             echo "Building $config (${FW_CHANNEL_MANIFEST})"
             uvx ewt-gen --dev "$config" \
               -t "$name" \
@@ -234,10 +230,8 @@ jobs:
             mkdir -p "boot/$name"
             cp "$fa" "boot/$name/"
 
-            # Harvest the signable app image too: the sector-padded unsigned
-            # OTA image ESPHome writes to the build directory. (ewt-gen only
-            # copies it into the site when given --publish-url, which we no
-            # longer pass — the firmware carries its own update entities.)
+            # Harvest the signable app image: the sector-padded unsigned
+            # OTA image ESPHome writes to the build directory.
             if [ ! -f "$build_dir/firmware.ota.bin" ]; then
               echo "firmware.ota.bin missing for $config" >&2
               exit 1
@@ -268,9 +262,6 @@ jobs:
           shopt -s nullglob
 
           for config in *.yaml; do
-            # ewt-gen writes a derived <config>.factory.yaml next to each
-            # config during compilation; those are not configs of their own.
-            [[ "$config" == *.factory.yaml ]] && continue
             [[ "$config" == secrets.yaml ]] && continue
             name="$(basename "${config%.*}")"
 
@@ -386,7 +377,6 @@ jobs:
             echo "## Unsigned firmware uploaded (${FW_ENV})"
             echo ""
             for config in *.yaml; do
-              [[ "$config" == *.factory.yaml ]] && continue
               [[ "$config" == secrets.yaml ]] && continue
               name="$(basename "${config%.*}")"
               echo "- \`gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/\`"
@@ -394,7 +384,7 @@ jobs:
             echo ""
             echo "Awaiting review & signature in the **${FW_ENV}** Autograph dashboard."
             echo ""
-            echo "After approval, run **Publish signed firmware pages** with:"
+            echo "After approval, run **Publish signed firmware** with:"
             echo "- environment: \`${FW_ENV}\`"
             echo "- version: \`${FW_VERSION}\`"
             echo "- commit: \`${GITHUB_SHA}\`"
