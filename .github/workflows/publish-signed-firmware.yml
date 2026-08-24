@@ -12,8 +12,13 @@
 #   4. assembles firmware.signed.factory.bin by merging the signed app with
 #      the boot components retained by the unsigned build for the SAME commit
 #      (Autograph never builds factory images — only the app is signed);
-#   5. extracts the app back out of the factory image and re-verifies it; and
-#   6. rebuilds this environment's half of the firmware pages and deploys.
+#   5. extracts the app back out of the factory image and re-verifies it;
+#   6. publishes the verified artifacts to the S3 serving layer
+#      (firmware.nabucasa.com): permanent versioned paths plus this
+#      channel's mutable pointer manifest; and
+#   7. rebuilds this environment's half of the firmware pages and deploys
+#      (TRANSITION: Pages remains the live channel until firmware baking
+#      firmware.nabucasa.com URLs ships; then this step is removed).
 #
 # Site layout: the deployed site is /staging/<config>/ + /prod/<config>/ ONLY.
 # Root-level config paths are not served (the pre-split legacy mirror is
@@ -104,6 +109,12 @@ env:
   AWS_ROLE_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_ROLE_ARN || vars.FW_STAGING_AWS_ROLE_ARN }}
   AWS_KMS_KEY_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_KMS_KEY_ARN || vars.FW_STAGING_AWS_KMS_KEY_ARN }}
   AWS_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && 'f2ae0b5a8dbe32a6d728d26c09cfe5a645ef9a78a6612db06df8280c69a43582' || '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' }}
+  # S3 serving layer (HDW-816): shared bucket behind firmware.nabucasa.com.
+  # The publishing role's trust admits main + tag refs only and can write
+  # only under the aux-2/ prefix.
+  S3_PUBLISH_ROLE: arn:aws:iam::330564535865:role/gha-aux-2-s3
+  S3_PUBLISH_REGION: us-east-1
+  S3_BASE: s3://nc-esp32-firmware/aux-2
 
 jobs:
   publish:
@@ -363,6 +374,94 @@ jobs:
             done
             echo '</ul></body></html>'
           } > site/index.html
+
+      # Everything below needing AWS switches identity: the pubkey-reader
+      # credentials are no longer required (keys already fetched and pinned),
+      # and the S3 publishing role can only write under the aux-2/ prefix.
+      - name: Authenticate to AWS for artifact publishing (OIDC, no keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.S3_PUBLISH_ROLE }}
+          aws-region: ${{ env.S3_PUBLISH_REGION }}
+
+      # Layout (firmware.esphome.io convention, HDW-816): artifacts live at
+      # permanent versioned paths; each channel is a mutable pointer manifest
+      # beside them (prod -> manifest.json, staging -> manifest-staging.json).
+      # Promotion/rollback = rewriting the pointer; binaries are never moved.
+      # The pre-prod hardware target has no prod channel — its versioned
+      # artifacts are still archived on prod publishes.
+      - name: Publish artifacts and channel manifest to S3
+        shell: bash
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+          COMMIT: ${{ github.event.inputs.commit }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          for config in *.yaml; do
+            [[ "$config" == secrets.yaml ]] && continue
+            # ewt-gen wrote derived <config>.factory.yaml files in the site
+            # step above; they are not device configs.
+            [[ "$config" == *.factory.yaml ]] && continue
+            name="$(basename "${config%.*}")"
+            out="signed/$name"
+            dest="${S3_BASE}/${name}"
+
+            core_pkg="$(sed -n 's/^[[:space:]]*core:[[:space:]]*!include[[:space:]]*//p' "$config" | head -1)"
+            project_name="$(sed -n 's/^    name: //p' "$core_pkg" | head -1)"
+            if [ -z "$project_name" ]; then
+              echo "Could not resolve esphome.project.name from $core_pkg" >&2
+              exit 1
+            fi
+
+            PROJECT_NAME="$project_name" \
+            OTA_MD5="$(md5sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)" \
+            OTA_SHA256="$(sha256sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)" \
+            FACTORY_MD5="$(md5sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)" \
+            FACTORY_SHA256="$(sha256sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)" \
+            python3 - > "$out/channel-manifest.json" <<'PY'
+          import json, os
+          v = os.environ["VERSION"]
+          print(json.dumps({
+              "name": os.environ["PROJECT_NAME"],
+              "version": v,
+              "home_assistant_domain": "esphome",
+              "new_install_prompt_erase": False,
+              "builds": [{
+                  "chipFamily": "ESP32-S3",
+                  "ota": {
+                      "path": f"{v}/firmware-esp32s3.ota.bin",
+                      "md5": os.environ["OTA_MD5"],
+                      "sha256": os.environ["OTA_SHA256"],
+                      "release_url": f"https://github.com/NabuCasa/aux-2/commit/{os.environ['COMMIT']}",
+                  },
+                  "parts": [{
+                      "path": f"{v}/firmware-esp32s3.factory.bin",
+                      "offset": 0,
+                      "md5": os.environ["FACTORY_MD5"],
+                      "sha256": os.environ["FACTORY_SHA256"],
+                  }],
+              }],
+          }, indent=2))
+          PY
+
+            echo "Uploading $name ${VERSION} artifacts"
+            aws s3 cp "$out/firmware.signed.ota.bin" "$dest/${VERSION}/firmware-esp32s3.ota.bin"
+            aws s3 cp "$out/firmware.signed.factory.bin" "$dest/${VERSION}/firmware-esp32s3.factory.bin"
+
+            if [ "${FW_ENV}" = "prod" ]; then
+              channel_manifest=""
+              [ "$name" = "connect-aux-2" ] && channel_manifest="manifest.json"
+            else
+              channel_manifest="manifest-staging.json"
+            fi
+            if [ -n "$channel_manifest" ]; then
+              echo "Promoting $name ${channel_manifest} -> ${VERSION}"
+              aws s3 cp "$out/channel-manifest.json" "$dest/${channel_manifest}" \
+                --content-type application/json --cache-control no-cache
+            fi
+          done
 
       # Persist the merged site so the next publish (either environment)
       # starts from it.
