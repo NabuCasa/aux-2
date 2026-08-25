@@ -292,12 +292,11 @@ jobs:
           role-to-assume: ${{ env.S3_PUBLISH_ROLE }}
           aws-region: ${{ env.S3_PUBLISH_REGION }}
 
-      # Layout (firmware.esphome.io convention, HDW-816): artifacts live at
-      # permanent versioned paths; each channel is a mutable pointer manifest
-      # beside them (prod -> manifest.json, staging -> manifest-staging.json).
-      # Promotion/rollback = rewriting the pointer; binaries are never moved.
-      # The pre-prod hardware target has no prod channel — its versioned
-      # artifacts are still archived on prod publishes.
+      # Layout: versioned artifacts are permanent (aux-2/<version>/...);
+      # each channel is a mutable pointer manifest beside them (prod ->
+      # aux-2/manifest.json, staging -> aux-2/manifest-staging.json).
+      # Promotion/rollback = rewriting the pointer; binaries never move.
+      # The flat layout assumes a single build target.
       - name: Publish artifacts and channel manifest to S3
         shell: bash
         env:
@@ -307,11 +306,20 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
+          configs=()
           for config in *.yaml; do
             [[ "$config" == secrets.yaml ]] && continue
+            configs+=("$config")
+          done
+          if [ ${#configs[@]} -ne 1 ]; then
+            echo "Flat S3 layout supports exactly one target, found ${#configs[@]}" >&2
+            exit 1
+          fi
+
+          for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
             out="signed/$name"
-            dest="${S3_BASE}/${name}"
+            dest="${S3_BASE}"
 
             core_pkg="$(sed -n 's/^[[:space:]]*core:[[:space:]]*!include[[:space:]]*//p' "$config" | head -1)"
             project_name="$(sed -n 's/^    name: //p' "$core_pkg" | head -1)"
@@ -356,16 +364,13 @@ jobs:
             aws s3 cp "$out/firmware.signed.factory.bin" "$dest/${VERSION}/firmware-esp32s3.factory.bin"
 
             if [ "${FW_ENV}" = "prod" ]; then
-              channel_manifest=""
-              [ "$name" = "connect-aux-2" ] && channel_manifest="manifest.json"
+              channel_manifest="manifest.json"
             else
               channel_manifest="manifest-staging.json"
             fi
-            if [ -n "$channel_manifest" ]; then
-              echo "Promoting $name ${channel_manifest} -> ${VERSION}"
-              aws s3 cp "$out/channel-manifest.json" "$dest/${channel_manifest}" \
-                --content-type application/json --cache-control no-cache
-            fi
+            echo "Promoting ${channel_manifest} -> ${VERSION}"
+            aws s3 cp "$out/channel-manifest.json" "$dest/${channel_manifest}" \
+              --content-type application/json --cache-control no-cache
           done
 
       - name: Publish summary
@@ -380,6 +385,6 @@ jobs:
             for config in *.yaml; do
               [[ "$config" == secrets.yaml ]] && continue
               name="$(basename "${config%.*}")"
-              echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled, published to https://firmware.nabucasa.com/aux-2/$name/${VERSION}/"
+              echo "- \`$name\` ${VERSION} (${COMMIT}) — dual signatures verified, factory image assembled, published to https://firmware.nabucasa.com/aux-2/${VERSION}/"
             done
           } >> "$GITHUB_STEP_SUMMARY"

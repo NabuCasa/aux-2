@@ -11,7 +11,7 @@ esphome:
   name: connect-aux-2
 
 substitutions:
-  fw_manifest_base: https://firmware.nabucasa.com/aux-2/connect-aux-2
+  fw_manifest_base: https://firmware.nabucasa.com/aux-2
 
 # Factory firmware only — adopted user configs (the core package) must not
 # re-advertise adoption.
