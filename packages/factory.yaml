@@ -52,11 +52,6 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     disabled_by_default: true
 
-external_components:
-  - source: github://pr#17598
-    components: [improv_serial]
-    refresh: always
-
 script:
   # Install any pending firmware update once the network is up. Reached via
   # USE_UPDATE-guarded lambdas so update-less configs (the user-adoptable
