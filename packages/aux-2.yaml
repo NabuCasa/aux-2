@@ -7,7 +7,7 @@ esphome:
   friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.7.0
+  min_version: 2026.8.0
   project:
     name: Nabu Casa.Home Assistant Connect AUX-2
     version: ${fw_version}
@@ -58,9 +58,7 @@ psram:
   ignore_not_found: false  # AUX-2 has PSRAM, so this is safe
 
 external_components:
-  - source:
-      type: local
-      path: components
+  - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
 
 # Restored from NVS at boot. Drives which network interface comes up via the
@@ -176,17 +174,14 @@ usb_uart:
       - id: uch_zw
         baud_rate: 115200
         buffer_size: 1024
-#   - type: CDC_ACM
-#     vid: 0x303A
-#     pid: 0x831A
-#     channels:
-#       - id: uch_zb
-#         baud_rate: 460800
-#         buffer_size: 1024
-
-# zigbee_proxy:
-#   id: zbt_proxy
-#   uart_id: uch_zb
+  # Waveshare CH343 USB-to-RS-485 dongle: the supported USB-A serial adapter.
+  - type: CH34X
+    vid: 0x1A86
+    pid: 0x55D3
+    channels:
+      - id: uch_usb_serial
+        baud_rate: 9600
+        buffer_size: 1024
 
 zwave_proxy:
   id: zw_proxy
@@ -212,6 +207,9 @@ serial_proxy:
     uart_id: uart_rs232_port_2
     name: RS-232 Port 2
     port_type: RS232
+  - id: usb_serial_proxy
+    uart_id: uch_usb_serial
+    name: USB Serial Port
 
 ##### I2C Components
 i2c:
