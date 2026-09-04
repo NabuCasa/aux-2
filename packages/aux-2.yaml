@@ -60,6 +60,10 @@ psram:
 external_components:
   - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
+  # Remove and bump min_version once #18969 ships in a release
+  - source: github://pr#18969
+    components: [usb_uart]
+    refresh: always
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
@@ -173,6 +177,9 @@ usb_uart:
   - type: CDC_ACM
     vid: 0x303A
     pid: 0x4001
+    # Don't claim the unused CDC notification interface — frees one of the
+    # ESP32-S3's eight USB host channels so hub + ZWA-2 + CH343 fit (8/8).
+    claim_comm_interface: false
     channels:
       - id: uch_zw
         baud_rate: 115200
