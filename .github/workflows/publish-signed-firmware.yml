@@ -98,7 +98,7 @@ env:
   AWS_ROLE_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_ROLE_ARN || vars.FW_STAGING_AWS_ROLE_ARN }}
   AWS_KMS_KEY_ARN: ${{ github.event.inputs.environment == 'prod' && vars.FW_PROD_AWS_KMS_KEY_ARN || vars.FW_STAGING_AWS_KMS_KEY_ARN }}
   AWS_PUBKEY_DER_SHA256: ${{ github.event.inputs.environment == 'prod' && 'f2ae0b5a8dbe32a6d728d26c09cfe5a645ef9a78a6612db06df8280c69a43582' || '89fd2ca82e7206de45ad5a64764b093a53e53db1cfab50776b2eea0630d640d7' }}
-  # S3 serving layer (HDW-816): shared bucket behind firmware.nabucasa.com.
+  # S3 serving layer: shared bucket behind firmware.nabucasa.com.
   # The publishing role's trust admits main + tag refs only and can write
   # only under the aux-2/ prefix.
   S3_PUBLISH_ROLE: arn:aws:iam::330564535865:role/gha-aux-2-s3
