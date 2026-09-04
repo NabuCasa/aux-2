@@ -177,7 +177,8 @@ usb_uart:
       - id: uch_zw
         baud_rate: 115200
         buffer_size: 1024
-  # Waveshare CH343 USB-to-RS-485 dongle: the supported USB-A serial adapter
+  # Stock WCH CH343 id — matches any CH343-based adapter, not one product;
+  # the validated/supported unit is the Waveshare USB-to-RS-485 dongle
   - type: CH34X
     vid: 0x1A86
     pid: 0x55D3
