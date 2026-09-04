@@ -210,6 +210,7 @@ serial_proxy:
   - id: usb_serial_proxy
     uart_id: uch_usb_serial
     name: USB Serial Port
+    port_type: RS485
 
 ##### I2C Components
 i2c:
