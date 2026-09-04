@@ -166,6 +166,9 @@ mdns:
       txt:
         protocol: "esphome"
 
+usb_host:
+  enable_hubs: true
+
 usb_uart:
   - type: CDC_ACM
     vid: 0x303A
@@ -174,7 +177,7 @@ usb_uart:
       - id: uch_zw
         baud_rate: 115200
         buffer_size: 1024
-  # Waveshare CH343 USB-to-RS-485 dongle: the supported USB-A serial adapter.
+  # Waveshare CH343 USB-to-RS-485 dongle: the supported USB-A serial adapter
   - type: CH34X
     vid: 0x1A86
     pid: 0x55D3
