@@ -325,10 +325,6 @@ audio:
   codecs:
     flac:
       # buffer_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
-    opus:
-      # state_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
-      pseudostack:
-        # threadsafe: false # Unnecessary on an ESP32-S3; prevents decoding two Opus streams simultaneously
 
 media_source:
   - platform: audio_http
@@ -340,6 +336,7 @@ media_source:
   - platform: sendspin
     id: sendspin_source
     task_stack_in_psram: true
+    codecs: [flac, pcm]
     # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
 
 media_player:
