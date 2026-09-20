@@ -7,7 +7,7 @@ esphome:
   friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.8.0
+  min_version: 2026.10.0
   project:
     name: Nabu Casa.Home Assistant Connect AUX-2
     version: ${fw_version}
@@ -60,10 +60,6 @@ psram:
 external_components:
   - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
-  # Remove and bump min_version once #18969 ships in a release
-  - source: github://pr#18969
-    components: [usb_uart]
-    refresh: always
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
