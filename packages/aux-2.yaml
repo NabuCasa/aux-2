@@ -363,6 +363,16 @@ media_player:
           id: media_mixing_input
           decibel_reduction: 20
           duration: 0.0s
+    on_state:
+      if:
+        condition:
+          not:
+            media_player.is_announcing: external_media_player
+        then:
+          - mixer_speaker.apply_ducking:
+              id: media_mixing_input
+              decibel_reduction: 0
+              duration: 1.0s
 
 ##### Other Components
 select:
