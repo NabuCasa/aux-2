@@ -518,6 +518,11 @@ switch:
     pin: 42
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
+  - platform: sendspin
+    type: enabled
+    id: sendspin_switch
+    name: Sendspin
+    restore_mode: RESTORE_DEFAULT_OFF
   # Defaults OFF: jack-detect circuit only exists on v3+ hardware. On v2, GPIO 8
   # is floating and the ADC reading is meaningless — leave the switch off.
   - platform: template
