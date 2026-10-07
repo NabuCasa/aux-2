@@ -509,12 +509,14 @@ switch:
   - platform: gpio
     id: grove_power_switch
     name: Grove Power
+    disabled_by_default: true
     pin: 46
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
   - platform: gpio
     id: usb_device_power_switch
     name: USB Device Power
+    disabled_by_default: true
     pin: 42
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
