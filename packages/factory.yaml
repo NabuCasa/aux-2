@@ -26,6 +26,9 @@ provisioning:
   timeout: 15min
 
 ota:
+  # Factory firmware updates only via the signed http_request channel; no
+  # network OTA endpoint. Adopted configs keep the core's esphome OTA.
+  - id: !remove esphome_ota
   - platform: http_request
     id: ota_http_request
 
