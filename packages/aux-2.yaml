@@ -525,7 +525,9 @@ switch:
     type: enabled
     id: sendspin_switch
     name: Sendspin
+    disabled_by_default: true
     restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
   - platform: template
     id: bluetooth_switch
     name: Bluetooth
