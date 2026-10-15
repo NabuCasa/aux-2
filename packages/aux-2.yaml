@@ -527,6 +527,15 @@ switch:
     name: Sendspin
     restore_mode: RESTORE_DEFAULT_ON
   - platform: template
+    id: bluetooth_switch
+    name: Bluetooth
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - ble.enable:
+    turn_off_action:
+      - ble.disable:
+  - platform: template
     id: auto_output_mode_switch
     name: Automatic output mode selection
     optimistic: true
