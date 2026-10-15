@@ -532,6 +532,7 @@ switch:
     disabled_by_default: true
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
     turn_on_action:
       - ble.enable:
     turn_off_action:
