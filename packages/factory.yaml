@@ -23,6 +23,7 @@ improv_serial:
   id: improv_serial_component
 
 provisioning:
+  id: provisioning_component
   timeout: 15min
 
 ota:
