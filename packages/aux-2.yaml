@@ -53,6 +53,7 @@ esp32:
       CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
 
 psram:
+  id: psram_component
   mode: octal
   speed: 80MHz
   ignore_not_found: false  # AUX-2 has PSRAM, so this is safe
@@ -82,6 +83,7 @@ globals:
     initial_value: 'false'
 
 network:
+  id: network_component
   priority:
     - ethernet
     - wifi
@@ -134,9 +136,11 @@ wifi:
   use_psram: true
 
 logger:
+  id: logger_component
   hardware_uart: UART0
 
 api:
+  id: api_component
   # Device runs standalone as a SendSpin audio device; don't reboot
   # when no Home Assistant client is connected.
   reboot_timeout: 0s
@@ -147,9 +151,11 @@ ota:
     id: esphome_ota
 
 http_request:
+  id: http_request_component
 
 ##### Bluetooth Proxy
 esp32_ble:
+  id: esp32_ble_component
   use_psram: true
 
 bluetooth_proxy:
@@ -160,6 +166,7 @@ esp32_ble_tracker:
 
 ##### Z-Wave Proxy
 mdns:
+  id: mdns_component
   services:
     - service: "_zwave"
       protocol: "_tcp"
@@ -168,10 +175,12 @@ mdns:
         protocol: "esphome"
 
 usb_host:
+  id: usb_host_component
   enable_hubs: true
 
 usb_uart:
-  - type: CDC_ACM
+  - id: usb_uart_zw
+    type: CDC_ACM
     vid: 0x303A
     pid: 0x4001
     # Don't claim the unused CDC notification interface — frees one of the
@@ -183,7 +192,8 @@ usb_uart:
         buffer_size: 1024
   # Stock WCH CH343 id — matches any CH343-based adapter, not one product;
   # the validated/supported unit is the Waveshare USB-to-RS-485 dongle
-  - type: CH34X
+  - id: usb_uart_usb_serial
+    type: CH34X
     vid: 0x1A86
     pid: 0x55D3
     channels:
