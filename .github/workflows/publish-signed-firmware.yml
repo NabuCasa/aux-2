@@ -292,8 +292,10 @@ jobs:
           role-to-assume: ${{ env.S3_PUBLISH_ROLE }}
           aws-region: ${{ env.S3_PUBLISH_REGION }}
 
-      # Layout: versioned artifacts are permanent (aux-2/<version>/...);
-      # each channel is a mutable pointer manifest beside them (prod ->
+      # Layout: versioned artifacts are permanent (aux-2/<version>/...)
+      # and carry their own <version>/manifest.json (paths relative to it) so
+      # the Autograph release index can list any version (HDW-894); each
+      # channel is a mutable pointer manifest beside them (prod ->
       # aux-2/manifest.json, staging -> aux-2/manifest-staging.json).
       # Promotion/rollback = rewriting the pointer; binaries never move.
       # The flat layout assumes a single build target.
@@ -328,14 +330,20 @@ jobs:
               exit 1
             fi
 
-            PROJECT_NAME="$project_name" \
-            OTA_MD5="$(md5sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)" \
-            OTA_SHA256="$(sha256sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)" \
-            FACTORY_MD5="$(md5sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)" \
-            FACTORY_SHA256="$(sha256sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)" \
-            python3 - > "$out/channel-manifest.json" <<'PY'
+            export PROJECT_NAME="$project_name"
+            export OTA_MD5="$(md5sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)"
+            export OTA_SHA256="$(sha256sum "$out/firmware.signed.ota.bin" | cut -d' ' -f1)"
+            export FACTORY_MD5="$(md5sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)"
+            export FACTORY_SHA256="$(sha256sum "$out/firmware.signed.factory.bin" | cut -d' ' -f1)"
+            # Same document twice: the channel pointer references <version>/...,
+            # the per-version manifest sits beside the binaries and references
+            # them directly.
+            for target in channel:"${VERSION}/" version:""; do
+            PATH_PREFIX="${target#*:}" \
+            python3 - > "$out/${target%%:*}-manifest.json" <<'PY'
           import json, os
           v = os.environ["VERSION"]
+          p = os.environ["PATH_PREFIX"]
           print(json.dumps({
               "name": os.environ["PROJECT_NAME"],
               "version": v,
@@ -344,13 +352,13 @@ jobs:
               "builds": [{
                   "chipFamily": "ESP32-S3",
                   "ota": {
-                      "path": f"{v}/firmware-esp32s3.ota.bin",
+                      "path": f"{p}firmware-esp32s3.ota.bin",
                       "md5": os.environ["OTA_MD5"],
                       "sha256": os.environ["OTA_SHA256"],
                       "release_url": f"https://github.com/NabuCasa/aux-2/commit/{os.environ['COMMIT']}",
                   },
                   "parts": [{
-                      "path": f"{v}/firmware-esp32s3.factory.bin",
+                      "path": f"{p}firmware-esp32s3.factory.bin",
                       "offset": 0,
                       "md5": os.environ["FACTORY_MD5"],
                       "sha256": os.environ["FACTORY_SHA256"],
@@ -358,10 +366,13 @@ jobs:
               }],
           }, indent=2))
           PY
+            done
 
             echo "Uploading $name ${VERSION} artifacts"
             aws s3 cp "$out/firmware.signed.ota.bin" "$dest/${VERSION}/firmware-esp32s3.ota.bin"
             aws s3 cp "$out/firmware.signed.factory.bin" "$dest/${VERSION}/firmware-esp32s3.factory.bin"
+            aws s3 cp "$out/version-manifest.json" "$dest/${VERSION}/manifest.json" \
+              --content-type application/json
 
             if [ "${FW_ENV}" = "prod" ]; then
               channel_manifest="manifest.json"
