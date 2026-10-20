@@ -61,6 +61,9 @@ psram:
 external_components:
   - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
+  - source: github://pr#20823
+    components: [serial_proxy, uart, usb_uart]
+    refresh: 1h
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
