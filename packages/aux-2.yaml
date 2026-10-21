@@ -535,13 +535,17 @@ switch:
     type: enabled
     id: sendspin_switch
     name: Sendspin
-    disabled_by_default: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+  - platform: sendspin
+    type: unpaired_access
+    id: sendspin_unpaired_access_switch
+    name: Sendspin unpaired access
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
   - platform: template
     id: bluetooth_switch
     name: Bluetooth
-    disabled_by_default: true
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config

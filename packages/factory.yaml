@@ -26,6 +26,20 @@ provisioning:
   id: provisioning_component
   timeout: 15min
 
+# Shown by Home Assistant when the device is added; adopted configs don't need it.
+api:
+  wizard:
+    pages:
+      - title: Network services
+        description: Choose which services this device offers. You can change them later in the device's settings.
+        entities:
+          - id: bluetooth_switch
+            description: Proxies nearby Bluetooth devices to Home Assistant.
+          - id: sendspin_switch
+            description: Lets Sendspin servers, such as Music Assistant, play audio on this device.
+          - id: sendspin_unpaired_access_switch
+            description: Lets Sendspin servers play without pairing first. Turn off to allow only paired servers.
+
 ota:
   # Factory firmware updates only via the signed http_request channel; no
   # network OTA endpoint. Adopted configs keep the core's esphome OTA.
