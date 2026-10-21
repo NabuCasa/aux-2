@@ -239,7 +239,7 @@ i2c:
     frequency: 400kHz
     scan: true
   # Grove
-  - id: i2s_grove
+  - id: i2c_grove
     scl: 2
     sda: 1
     frequency: 400kHz
