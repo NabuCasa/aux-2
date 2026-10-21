@@ -145,6 +145,21 @@ api:
   # when no Home Assistant client is connected.
   reboot_timeout: 0s
   encryption:
+  # Shown by Home Assistant when the device is added.
+  wizard:
+    pages:
+      - title: Bluetooth
+        description: Choose whether this device offers Bluetooth. You can change this later in the device's settings.
+        entities:
+          - id: bluetooth_switch
+            description: Proxies nearby Bluetooth devices to Home Assistant.
+      - title: Sendspin
+        description: Choose how this device works with Sendspin. You can change this later in the device's settings.
+        entities:
+          - id: sendspin_switch
+            description: Lets Sendspin servers, such as Music Assistant, play audio on this device.
+          - id: sendspin_unpaired_access_switch
+            description: Lets Sendspin servers play without pairing first. Turn off to allow only paired servers.
 
 ota:
   - platform: esphome
@@ -535,13 +550,17 @@ switch:
     type: enabled
     id: sendspin_switch
     name: Sendspin
-    disabled_by_default: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+  - platform: sendspin
+    type: unpaired_access
+    id: sendspin_unpaired_access_switch
+    name: Sendspin unpaired access
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
   - platform: template
     id: bluetooth_switch
     name: Bluetooth
-    disabled_by_default: true
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
