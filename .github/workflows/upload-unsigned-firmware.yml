@@ -55,7 +55,7 @@ env:
   WIF_PROVIDER: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_WIF_PROVIDER || vars.FW_STAGING_WIF_PROVIDER }}
   # ESPHome commit the firmware is built with. Still on dev for now; pinned so
   # every run of a commit builds the same code. Bump it in a reviewed commit.
-  ESPHOME_REF: 08d231991b0c8b21eaf71129ea1c35443da99201
+  ESPHOME_REF: 9d30bcc7215d1d89f5d18bfd9b3b65df1c804ca6
   # Builds the SBOM from the manifests ESPHome writes into each build.
   ESP_IDF_SBOM_VERSION: "1.4.0"
   # The firmware's OTA trust anchor is derived at build time from the signing
