@@ -56,6 +56,8 @@ env:
   # ESPHome commit the firmware is built with. Still on dev for now; pinned so
   # every run of a commit builds the same code. Bump it in a reviewed commit.
   ESPHOME_REF: 08d231991b0c8b21eaf71129ea1c35443da99201
+  # Builds the SBOM from the manifests ESPHome writes into each build.
+  ESP_IDF_SBOM_VERSION: "1.4.0"
   # The firmware's OTA trust anchor is derived at build time from the signing
   # keys' public halves: each is fetched from KMS, verified against the
   # DER-SHA256 pin below, then reduced to its Secure Boot v2 block-format digest
@@ -205,7 +207,7 @@ jobs:
             exit 1
           fi
 
-          mkdir -p boot
+          mkdir -p boot sbom
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
 
@@ -244,6 +246,14 @@ jobs:
               mkdir -p "boot/$name/$(dirname "$f")"
               cp "$build_dir/$f" "boot/$name/$f"
             done < <(jq -r '.flash_files[]' "$fa")
+
+            # SBOM (SPDX and CycloneDX) of this build, made from the same
+            # build directory before the next config overwrites it.
+            mkdir -p "sbom/$name"
+            uvx "esp-idf-sbom==${ESP_IDF_SBOM_VERSION}" create \
+              -o "sbom/$name/sbom.spdx" "$build_dir/project_description.json"
+            uvx "esp-idf-sbom==${ESP_IDF_SBOM_VERSION}" create --format cyclonedx-json \
+              -o "sbom/$name/sbom.cdx.json" "$build_dir/project_description.json"
           done
 
       # ------------------------------------------------------------------
@@ -356,6 +366,15 @@ jobs:
         with:
           name: boot-${{ github.sha }}
           path: boot/
+          if-no-files-found: error
+
+      # The publisher fetches the SBOM by run id + commit, like the boot
+      # components, and publishes it next to the signed firmware.
+      - name: Retain SBOM for publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom/
           if-no-files-found: error
 
       - name: Upload to unsigned bucket

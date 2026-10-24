@@ -3,6 +3,15 @@
 substitutions:
   fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest-staging.json
 
+# Maker and security contact for the firmware's SBOM. Factory firmware only:
+# an adopted config is built by its owner, so Nabu Casa is not its supplier.
+esphome:
+  project:
+    sbom:
+      supplier: Nabu Casa, Inc.
+      contact: security@nabucasa.com
+      url: https://www.nabucasa.com
+
 esp32:
   framework:
     advanced:
