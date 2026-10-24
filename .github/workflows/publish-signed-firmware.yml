@@ -193,6 +193,20 @@ jobs:
             -n "boot-${{ github.event.inputs.commit }}" \
             -D boot
 
+      # Builds made before the SBOM step have no SBOM artifact; publish those
+      # without one rather than failing.
+      - name: Download SBOM from the unsigned build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh run download "${{ github.event.inputs.boot_run_id }}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n "sbom-${{ github.event.inputs.commit }}" \
+            -D sbom; then
+            echo "::warning::No SBOM artifact for this build; publishing without one"
+          fi
+
       - name: Download, verify, and assemble signed firmware
         shell: bash
         env:
@@ -373,6 +387,12 @@ jobs:
             aws s3 cp "$out/firmware.signed.factory.bin" "$dest/${VERSION}/firmware-esp32s3.factory.bin"
             aws s3 cp "$out/version-manifest.json" "$dest/${VERSION}/manifest.json" \
               --content-type application/json
+            if [ -f "sbom/$name/sbom.spdx" ]; then
+              aws s3 cp "sbom/$name/sbom.spdx" "$dest/${VERSION}/firmware-esp32s3.sbom.spdx" \
+                --content-type text/spdx
+              aws s3 cp "sbom/$name/sbom.cdx.json" "$dest/${VERSION}/firmware-esp32s3.sbom.cdx.json" \
+                --content-type application/vnd.cyclonedx+json
+            fi
 
             if [ "${FW_ENV}" = "prod" ]; then
               channel_manifest="manifest.json"
