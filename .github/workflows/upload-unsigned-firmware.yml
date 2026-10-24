@@ -53,6 +53,9 @@ env:
   PROJECT_ID: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_PROJECT_ID || vars.FW_STAGING_PROJECT_ID }}
   BUCKET: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_UNSIGNED_BUCKET || vars.FW_STAGING_UNSIGNED_BUCKET }}
   WIF_PROVIDER: ${{ startsWith(github.ref, 'refs/tags/') && vars.FW_PROD_WIF_PROVIDER || vars.FW_STAGING_WIF_PROVIDER }}
+  # ESPHome commit the firmware is built with. Still on dev for now; pinned so
+  # every run of a commit builds the same code. Bump it in a reviewed commit.
+  ESPHOME_REF: 08d231991b0c8b21eaf71129ea1c35443da99201
   # The firmware's OTA trust anchor is derived at build time from the signing
   # keys' public halves: each is fetched from KMS, verified against the
   # DER-SHA256 pin below, then reduced to its Secure Boot v2 block-format digest
@@ -129,8 +132,8 @@ jobs:
       # Derive the firmware's OTA trust anchor from the live signing keys: fetch
       # each public half, verify it against its DER-SHA256 pin, then reduce it to
       # the Secure Boot v2 block-format digest the device matches per signature
-      # block. The configs read these via !secret; ESPHome (invoked by ewt-gen)
-      # resolves secrets.yaml from the config directory, which is the repo root
+      # block. The configs read these via !secret; ESPHome resolves
+      # secrets.yaml from the config directory, which is the repo root
       # here. secrets.yaml is excluded from the config globs below (not a device
       # config) and gitignored.
       - name: Fetch signing keys and write the trust anchor (secrets.yaml)
@@ -179,7 +182,7 @@ jobs:
           EOF
           echo "Trust anchor: gcp=${gcp_digest} aws=${aws_digest}"
 
-      - name: Build firmware with ewt-gen
+      - name: Build firmware
         shell: bash
         env:
           # Resolved by the configs themselves (!env_var): FW_VERSION stamps
@@ -202,17 +205,13 @@ jobs:
             exit 1
           fi
 
-          mkdir -p site boot
+          mkdir -p boot
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
 
-            # The configs declare their own update/ota entities and
-            # dashboard_import — no ewt-gen overlay flags.
             echo "Building $config (${FW_CHANNEL_MANIFEST})"
-            uvx ewt-gen --dev "$config" \
-              -t "$name" \
-              -o "site/$name" \
-              --fw-version "$FW_VERSION"
+            uvx --from "git+https://github.com/esphome/esphome.git@${ESPHOME_REF}" \
+              esphome compile "$config"
 
             # Retain this build's boot components (everything flasher_args.json
             # flashes except the app: bootloader, partition table, OTA data) so
