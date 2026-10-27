@@ -58,7 +58,7 @@ jobs:
           shopt -s nullglob
 
           if [ "$VERSION" = all ]; then
-            dirs=(sbom/backfill/*/)
+            dirs=(sbom/backfill/[0-9]*/)
           else
             dirs=("sbom/backfill/${VERSION}/")
           fi
