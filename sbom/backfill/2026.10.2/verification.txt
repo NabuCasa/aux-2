@@ -1,0 +1,10 @@
+# Rebuilt app vs published signed app (2026.10.2)
+
+## Byte comparison (compare_app.py)
+rebuilt 1900544 bytes, published (signed) 1904640 bytes
+differing bytes: 86 in 10 range(s)
+
+## Text strings (verify_strings.py)
+text strings: rebuilt=6689 published=6689
+only in rebuilt=0 only in published=0
+RESULT: MATCH

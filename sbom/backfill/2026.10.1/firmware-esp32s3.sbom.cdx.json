@@ -1,0 +1,2233 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:018ddf2c-8bba-4fcf-ba6b-106aaecd9a74",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-27T20:14:49Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "esp-idf-sbom",
+          "version": "1.4.0",
+          "supplier": {
+            "name": "Espressif Systems (Shanghai) CO LTD",
+            "url": [
+              "https://www.espressif.com"
+            ]
+          },
+          "purl": "pkg:pypi/esp-idf-sbom@1.4.0",
+          "licenses": [
+            {
+              "license": {
+                "id": "Apache-2.0"
+              }
+            }
+          ],
+          "externalReferences": [
+            {
+              "type": "vcs",
+              "url": "https://github.com/espressif/esp-idf-sbom"
+            },
+            {
+              "type": "distribution",
+              "url": "https://pypi.org/project/esp-idf-sbom/"
+            }
+          ]
+        }
+      ]
+    },
+    "manufacturer": {
+      "name": "Nabu Casa, Inc.",
+      "url": [
+        "https://www.nabucasa.com"
+      ],
+      "contact": [
+        {
+          "email": "security@nabucasa.com"
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "PROJECT-connect-aux-2",
+      "name": "Nabu Casa.Home Assistant Connect AUX-2",
+      "version": "2026.10.1",
+      "supplier": {
+        "name": "Nabu Casa, Inc. (security@nabucasa.com)"
+      },
+      "licenses": [
+        {
+          "expression": "Apache-2.0 AND GPL-3.0-only"
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "nabucasa:reconstructed",
+        "value": "Reconstructed on 2026-10-27, after release. Built from tag 2026.10.1 of NabuCasa/aux-2 with the inputs its original CI build used: ESPHome dev 7aeed8455e47b8f0cf804492081b02488ffa190e, ESP-IDF 5.5.5, w5500_link_monitor from NabuCasa/aux-2 at 01bc450d353c70b00a3417884cee12b6a8720d0f. The rebuilt firmware matches the published signed firmware (https://firmware.nabucasa.com/aux-2/2026.10.1/firmware-esp32s3.factory.bin, sha256 4b3d3512e7e2643efe162a219059938732ab3e2c153e7474e08db00b7d514f5b) byte for byte except for the embedded build time and the hashes that cover it."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "framework",
+      "bom-ref": "FRAMEWORK-esp-idf",
+      "name": "esp-idf",
+      "version": "5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "description": "Espressif IoT Development Framework -- the official development framework for Espressif Systems' chips.",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "cpe": "cpe:2.3:a:espressif:esp-idf:5.5.5:*:*:*:*:*:*:*",
+      "evidence": {
+        "identity": [
+          {
+            "field": "cpe",
+            "concludedValue": "cpe:2.3:h:espressif:esp32:-:*:*:*:*:*:*:*"
+          },
+          {
+            "field": "cpe",
+            "concludedValue": "cpe:2.3:o:espressif:esp32_firmware:5.5.5:*:*:*:*:*:*:*"
+          },
+          {
+            "field": "cpe",
+            "concludedValue": "cpe:2.3:o:espressif:esp32_firmware:-:*:*:*:*:*:*:*"
+          }
+        ]
+      }
+    },
+    {
+      "type": "application",
+      "bom-ref": "TOOLCHAIN-xtensa-esp-elf",
+      "name": "toolchain-xtensa-esp-elf",
+      "version": "esp-14.2.0_20260121",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "description": "Toolchain for 32-bit Xtensa based on GCC",
+      "purl": "pkg:github/espressif/crosstool-NG@esp-14.2.0_20260121",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a450db49cea5f191a96345c5b7f0e1a9671a9cf132fecfd9fb1faf6c2a30637e"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/espressif/crosstool-NG"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/espressif/crosstool-NG/releases/download/esp-14.2.0_20260121/xtensa-esp-elf-14.2.0_20260121-aarch64-apple-darwin.tar.xz"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-Improv",
+      "name": "Improv",
+      "version": "1.2.7",
+      "description": "Improv is a free and open standard with ready-made SDKs that offer a great user experience to configure Wi-Fi on devices",
+      "purl": "pkg:github/improv-wifi/sdk-cpp@1.2.7",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/improv-wifi/sdk-cpp.git"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-app-update",
+      "name": "component-app_update",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-bblanchon--arduinojson",
+      "name": "component-bblanchon__arduinojson",
+      "version": "7.4.3",
+      "description": "A simple and efficient JSON library for embedded C++. \u2605 7124 stars on GitHub! Supports serialization, deserialization, MessagePack, streams, filtering, and more. Fully tested and documented.",
+      "purl": "pkg:github/bblanchon/ArduinoJson@77771d3c07668e01d8f52acb03910c1110bb373f",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/bblanchon/ArduinoJson.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://arduinojson.org/"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-bootloader",
+      "name": "component-bootloader",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-bootloader-support",
+      "name": "component-bootloader_support",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-bt",
+      "name": "component-bt",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-bt-host-nimble-nimble",
+      "name": "Apache Mynewt Nimble",
+      "version": "1.6.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "The Apache Software Foundation",
+      "description": "An open-source Bluetooth 5.1 stack with additional features and patches from Espressif."
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-console",
+      "name": "component-console",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-console-argtable3",
+      "name": "argtable3",
+      "version": "3.2.2",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Argtable.org and individual contributors",
+      "description": "An open source ANSI C library that parses GNU-style command-line options."
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-cxx",
+      "name": "component-cxx",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-driver",
+      "name": "component-driver",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-efuse",
+      "name": "component-efuse",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-tls",
+      "name": "component-esp-tls",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-adc",
+      "name": "component-esp_adc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-app-format",
+      "name": "component-esp_app_format",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-bootloader-format",
+      "name": "component-esp_bootloader_format",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-coex",
+      "name": "component-esp_coex",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-common",
+      "name": "component-esp_common",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-ana-cmpr",
+      "name": "component-esp_driver_ana_cmpr",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-bitscrambler",
+      "name": "component-esp_driver_bitscrambler",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-dac",
+      "name": "component-esp_driver_dac",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-gpio",
+      "name": "component-esp_driver_gpio",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-gptimer",
+      "name": "component-esp_driver_gptimer",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-i2c",
+      "name": "component-esp_driver_i2c",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-i2s",
+      "name": "component-esp_driver_i2s",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-isp",
+      "name": "component-esp_driver_isp",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-jpeg",
+      "name": "component-esp_driver_jpeg",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-ledc",
+      "name": "component-esp_driver_ledc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-mcpwm",
+      "name": "component-esp_driver_mcpwm",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-parlio",
+      "name": "component-esp_driver_parlio",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-pcnt",
+      "name": "component-esp_driver_pcnt",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-ppa",
+      "name": "component-esp_driver_ppa",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-rmt",
+      "name": "component-esp_driver_rmt",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-sdio",
+      "name": "component-esp_driver_sdio",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-sdm",
+      "name": "component-esp_driver_sdm",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-sdmmc",
+      "name": "component-esp_driver_sdmmc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-sdspi",
+      "name": "component-esp_driver_sdspi",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-spi",
+      "name": "component-esp_driver_spi",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-tsens",
+      "name": "component-esp_driver_tsens",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-twai",
+      "name": "component-esp_driver_twai",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-uart",
+      "name": "component-esp_driver_uart",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-driver-usb-serial-jtag",
+      "name": "component-esp_driver_usb_serial_jtag",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-eth",
+      "name": "component-esp_eth",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-event",
+      "name": "component-esp_event",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-gdbstub",
+      "name": "component-esp_gdbstub",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-http-client",
+      "name": "component-esp_http_client",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-http-server",
+      "name": "component-esp_http_server",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-hw-support",
+      "name": "component-esp_hw_support",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-mm",
+      "name": "component-esp_mm",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-netif",
+      "name": "component-esp_netif",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-netif-stack",
+      "name": "component-esp_netif_stack",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-partition",
+      "name": "component-esp_partition",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-phy",
+      "name": "component-esp_phy",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-pm",
+      "name": "component-esp_pm",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-psram",
+      "name": "component-esp_psram",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-ringbuf",
+      "name": "component-esp_ringbuf",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-rom",
+      "name": "component-esp_rom",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-security",
+      "name": "component-esp_security",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-system",
+      "name": "component-esp_system",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-timer",
+      "name": "component-esp_timer",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-vfs-console",
+      "name": "component-esp_vfs_console",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esp-wifi",
+      "name": "component-esp_wifi",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--esp-audio-libs",
+      "name": "component-esphome__esp-audio-libs",
+      "version": "4.0.1",
+      "description": "Audio resampling library for ESP32 devices",
+      "purl": "pkg:github/esphome-libs/esp-audio-libs@891fdfc531ad38d9e90b5e9088be60a66c82ed4c",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/esp-audio-libs.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/esphome/esp-audio-libs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--libsodium",
+      "name": "component-esphome__libsodium",
+      "version": "1.10021.11",
+      "description": "ESPHome's libsodium port",
+      "purl": "pkg:github/esphome-libs/libsodium@40c22448d6e8f42be56c45f739b52a5c8d21c8ca",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/libsodium.git"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--micro-decoder",
+      "name": "component-esphome__micro-decoder",
+      "version": "0.4.0",
+      "supplier": {
+        "name": "Kevin Ahrendt <kevin.ahrendt@openhomefoundation.org>"
+      },
+      "description": "C++ audio decoding library with HTTP/HTTPS streaming, supporting FLAC, MP3, Opus, Vorbis, and WAV",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/esphome-libs/micro-decoder@4d06df93a1ee69788dfc7d8676cbd66371b3eae9",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/micro-decoder.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/esphome-libs/micro-decoder"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--micro-flac",
+      "name": "component-esphome__micro-flac",
+      "version": "0.2.0",
+      "supplier": {
+        "name": "Kevin Ahrendt <kevin.ahrendt@openhomefoundation.org>"
+      },
+      "description": "FLAC audio decoder optimized for ESP32 with Xtensa assembly optimizations",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/esphome-libs/micro-flac@387cbfd0903b73b0957485e4b9eeabc8bc214934",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/micro-flac.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/esphome-libs/micro-flac"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--micro-opus",
+      "name": "component-esphome__micro-opus",
+      "version": "0.4.1",
+      "supplier": {
+        "name": "Kevin Ahrendt <kevin.ahrendt@openhomefoundation.org>"
+      },
+      "description": "Opus audio codec library for ESP32 - high-quality audio compression with ESP-IDF optimizations",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/esphome-libs/micro-opus@8354085908683c6130e32a832aeec8a7ca115c51",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/micro-opus.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/esphome-libs/micro-opus"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esphome--noise-c",
+      "name": "component-esphome__noise-c",
+      "version": "0.1.30",
+      "description": "noise-c",
+      "purl": "pkg:github/esphome-libs/noise-c@44722c19f7795dd409b46728712067fac87ffc53",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/esphome-libs/noise-c.git"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-espressif--esp-websocket-client",
+      "name": "component-espressif__esp_websocket_client",
+      "version": "1.8.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "description": "WebSocket protocol client for ESP-IDF",
+      "purl": "pkg:github/espressif/esp-protocols@70bf122fc8bc74622dcf7e15233b5b2af9088df5#components/esp_websocket_client",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/espressif/esp-protocols.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/espressif/esp-protocols/tree/master/components/esp_websocket_client"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-espressif--mdns",
+      "name": "component-espressif__mdns",
+      "version": "1.12.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "description": "Multicast UDP service used to provide local network service and host discovery.",
+      "purl": "pkg:github/espressif/esp-protocols@db06b19b7be729c163d346f62ec0eba01047b7f1#components/mdns",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/espressif/esp-protocols.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/espressif/esp-protocols/tree/master/components/mdns"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-esptool-py",
+      "name": "component-esptool_py",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-freertos",
+      "name": "component-freertos",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel",
+      "name": "freertos",
+      "version": "10.5.1",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Amazon Web Services",
+      "description": "An open-source, real-time operating system (RTOS) with additional features and patches from Espressif.",
+      "cpe": "cpe:2.3:o:amazon:freertos:10.5.1:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-hal",
+      "name": "component-hal",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-heap",
+      "name": "component-heap",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-http-parser",
+      "name": "HTTP Parser",
+      "version": "2.7.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "NGINX, Joyent, Inc. and other Node contributors",
+      "description": "HTTP request/response parser for c."
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-idf-test",
+      "name": "component-idf_test",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-log",
+      "name": "component-log",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-lwip",
+      "name": "component-lwip",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-lwip-lwip",
+      "name": "lwip",
+      "version": "2.2.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "non-GNU software and documentation, lwIP Project <lwip-members@nongnu.org>",
+      "description": "A Lightweight TCP/IP stack with additional features and patches from Espressif.",
+      "cpe": "cpe:2.3:a:lwip_project:lwip:2.2.0:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-mbedtls",
+      "name": "component-mbedtls",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-mbedtls-mbedtls",
+      "name": "mbed_tls",
+      "version": "3.6.6",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Trusted Firmware <mbed-tls-security@lists.trustedfirmware.org>",
+      "description": "An open source, portable, easy to use, readable and flexible SSL library with additional features and patches from Espressif.",
+      "cpe": "cpe:2.3:a:arm:mbed_tls:3.6.6:*:*:*:*:*:*:*",
+      "evidence": {
+        "identity": [
+          {
+            "field": "cpe",
+            "concludedValue": "cpe:2.3:a:trustedfirmware:mbed_tls:3.6.6:*:*:*:*:*:*:*"
+          }
+        ]
+      },
+      "properties": [
+        {
+          "name": "esp-idf-sbom:cve-keyword",
+          "value": "mbed tls"
+        },
+        {
+          "name": "esp-idf-sbom:cve-keyword",
+          "value": "mbedtls"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-newlib",
+      "name": "esp_libc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Espressif Systems (Shanghai) CO LTD",
+      "description": "An open-source C standard library implementation with additional features and patches from Espressif."
+    },
+    {
+      "type": "library",
+      "bom-ref": "VIRTPACKAGE-newlib-sbom-newlibc.yml",
+      "name": "newlib",
+      "version": "4.3.0",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Red Hat Incorporated",
+      "description": "Newlib is a small C standard library for embedded systems",
+      "cpe": "cpe:2.3:a:newlib_project:newlib:4.3.0:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-nvs-flash",
+      "name": "component-nvs_flash",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-nvs-sec-provider",
+      "name": "component-nvs_sec_provider",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-partition-table",
+      "name": "component-partition_table",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-pthread",
+      "name": "component-pthread",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-sdmmc",
+      "name": "component-sdmmc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-sendspin--sendspin-cpp",
+      "name": "component-sendspin__sendspin-cpp",
+      "version": "0.8.0",
+      "supplier": {
+        "name": "Kevin Ahrendt <kevin.ahrendt@openhomefoundation.org>"
+      },
+      "description": "Sendspin synchronized audio streaming client for ESP32",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:github/Sendspin/sendspin-cpp@9331ace6428979982c934384702d289958ca125e",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://github.com/Sendspin/sendspin-cpp.git"
+        },
+        {
+          "type": "distribution",
+          "url": "https://github.com/sendspin/sendspin-cpp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-soc",
+      "name": "component-soc",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-spi-flash",
+      "name": "component-spi_flash",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-src",
+      "name": "esphome",
+      "version": "2026.11.0-dev",
+      "supplier": {
+        "name": "Open Home Foundation"
+      },
+      "description": "ESPHome firmware runtime and generated code",
+      "licenses": [
+        {
+          "expression": "GPL-3.0-only"
+        }
+      ],
+      "purl": "pkg:github/esphome/esphome@7aeed8455e47b8f0cf804492081b02488ffa190e",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/esphome/esphome"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "SUBPACKAGE-src-esphome-components-w5500-link-monitor",
+      "name": "w5500_link_monitor",
+      "version": "01bc450d353c70b00a3417884cee12b6a8720d0f",
+      "description": "External component from https://github.com/NabuCasa/aux-2@main",
+      "purl": "pkg:github/NabuCasa/aux-2@01bc450d353c70b00a3417884cee12b6a8720d0f#components/w5500_link_monitor",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/NabuCasa/aux-2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-tcp-transport",
+      "name": "component-tcp_transport",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-touch-element",
+      "name": "component-touch_element",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-usb",
+      "name": "component-usb",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-vfs",
+      "name": "component-vfs",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-wpa-supplicant",
+      "name": "wpa_supplicant",
+      "version": "2.10",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      },
+      "publisher": "Jouni Malinen",
+      "description": "Espressif fork of wpa_supplicant - an open-source WPA/WPA2/WPA3/IEEE 802.1X Supplicant.",
+      "cpe": "cpe:2.3:a:w1.fi:wpa_supplicant:2.10:*:*:*:*:*:*:*"
+    },
+    {
+      "type": "library",
+      "bom-ref": "COMPONENT-xtensa",
+      "name": "component-xtensa",
+      "version": "v5.5.5",
+      "supplier": {
+        "name": "Espressif Systems (Shanghai) CO LTD"
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "PROJECT-connect-aux-2",
+      "dependsOn": [
+        "FRAMEWORK-esp-idf",
+        "TOOLCHAIN-xtensa-esp-elf",
+        "COMPONENT-src"
+      ]
+    },
+    {
+      "ref": "COMPONENT-Improv",
+      "dependsOn": [
+        "COMPONENT-app-update",
+        "COMPONENT-bootloader-support",
+        "COMPONENT-bt",
+        "COMPONENT-cxx",
+        "COMPONENT-efuse",
+        "COMPONENT-esp-tls",
+        "COMPONENT-esp-adc",
+        "COMPONENT-esp-app-format",
+        "COMPONENT-esp-coex",
+        "COMPONENT-esp-common",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-i2c",
+        "COMPONENT-esp-driver-i2s",
+        "COMPONENT-esp-driver-rmt",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-esp-eth",
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-http-client",
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-netif",
+        "COMPONENT-esp-partition",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-psram",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-rom",
+        "COMPONENT-esp-security",
+        "COMPONENT-esp-system",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-vfs-console",
+        "COMPONENT-esp-wifi",
+        "COMPONENT-esphome--esp-audio-libs",
+        "COMPONENT-esphome--libsodium",
+        "COMPONENT-esphome--micro-decoder",
+        "COMPONENT-esphome--micro-flac",
+        "COMPONENT-esphome--noise-c",
+        "COMPONENT-espressif--mdns",
+        "COMPONENT-freertos",
+        "COMPONENT-hal",
+        "COMPONENT-heap",
+        "COMPONENT-http-parser",
+        "COMPONENT-log",
+        "COMPONENT-lwip",
+        "COMPONENT-mbedtls",
+        "COMPONENT-newlib",
+        "COMPONENT-nvs-flash",
+        "COMPONENT-nvs-sec-provider",
+        "COMPONENT-pthread",
+        "COMPONENT-sendspin--sendspin-cpp",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash",
+        "COMPONENT-usb",
+        "COMPONENT-vfs",
+        "COMPONENT-wpa-supplicant",
+        "COMPONENT-xtensa"
+      ]
+    },
+    {
+      "ref": "COMPONENT-app-update",
+      "dependsOn": [
+        "COMPONENT-bootloader-support",
+        "COMPONENT-efuse",
+        "COMPONENT-esp-app-format",
+        "COMPONENT-esp-partition",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-bootloader-support",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-app-format",
+        "COMPONENT-heap",
+        "COMPONENT-mbedtls",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-bt",
+      "dependsOn": [
+        "SUBPACKAGE-bt-host-nimble-nimble",
+        "COMPONENT-esp-coex",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-phy",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-wifi",
+        "COMPONENT-mbedtls",
+        "COMPONENT-nvs-flash",
+        "COMPONENT-soc",
+        "COMPONENT-vfs"
+      ]
+    },
+    {
+      "ref": "COMPONENT-console",
+      "dependsOn": [
+        "SUBPACKAGE-console-argtable3",
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-esp-vfs-console",
+        "COMPONENT-vfs"
+      ]
+    },
+    {
+      "ref": "COMPONENT-cxx",
+      "dependsOn": [
+        "COMPONENT-esp-system",
+        "COMPONENT-pthread"
+      ]
+    },
+    {
+      "ref": "COMPONENT-driver",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-i2c",
+        "COMPONENT-esp-driver-i2s",
+        "COMPONENT-esp-driver-rmt",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-timer",
+        "COMPONENT-freertos",
+        "COMPONENT-hal",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-efuse",
+      "dependsOn": [
+        "COMPONENT-bootloader-support",
+        "COMPONENT-esp-app-format",
+        "COMPONENT-esp-partition",
+        "COMPONENT-esp-system",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-tls",
+      "dependsOn": [
+        "COMPONENT-esp-timer",
+        "COMPONENT-http-parser",
+        "COMPONENT-lwip",
+        "COMPONENT-mbedtls"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-adc",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-ringbuf"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-coex",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-ana-cmpr",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-bitscrambler",
+      "dependsOn": [
+        "COMPONENT-esp-mm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-dac",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-gpio",
+      "dependsOn": [
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-gptimer",
+      "dependsOn": [
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-i2c",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-ringbuf"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-i2s",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-isp",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-jpeg",
+      "dependsOn": [
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-psram"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-ledc",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-mcpwm",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-parlio",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-pcnt",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-ppa",
+      "dependsOn": [
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-rmt",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-sdio",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-ringbuf"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-sdm",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-sdmmc",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-sdspi",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-spi",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-psram",
+        "COMPONENT-esp-timer",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-tsens",
+      "dependsOn": [
+        "COMPONENT-efuse"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-twai",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-uart",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-psram",
+        "COMPONENT-esp-ringbuf"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-driver-usb-serial-jtag",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-eth",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-timer",
+        "COMPONENT-log"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-event",
+      "dependsOn": [
+        "COMPONENT-esp-common",
+        "COMPONENT-esp-timer",
+        "COMPONENT-freertos",
+        "COMPONENT-log"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-gdbstub",
+      "dependsOn": [
+        "COMPONENT-esp-rom",
+        "COMPONENT-esp-system",
+        "COMPONENT-freertos",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-http-client",
+      "dependsOn": [
+        "COMPONENT-esp-event",
+        "COMPONENT-http-parser",
+        "COMPONENT-lwip",
+        "COMPONENT-tcp-transport"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-http-server",
+      "dependsOn": [
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-timer",
+        "COMPONENT-http-parser",
+        "COMPONENT-lwip",
+        "COMPONENT-mbedtls"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-hw-support",
+      "dependsOn": [
+        "COMPONENT-bootloader-support",
+        "COMPONENT-efuse",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-security",
+        "COMPONENT-esp-timer",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-mm",
+      "dependsOn": [
+        "COMPONENT-heap",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-netif",
+      "dependsOn": [
+        "COMPONENT-esp-event"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-netif-stack",
+      "dependsOn": [
+        "COMPONENT-lwip"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-partition",
+      "dependsOn": [
+        "COMPONENT-app-update",
+        "COMPONENT-bootloader-support",
+        "COMPONENT-esp-system",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-phy",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-wifi",
+        "COMPONENT-nvs-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-pm",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-system",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-psram",
+      "dependsOn": [
+        "COMPONENT-esp-mm",
+        "COMPONENT-heap",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-rom",
+      "dependsOn": [
+        "COMPONENT-hal",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-security",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-esp-system",
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-system",
+      "dependsOn": [
+        "COMPONENT-bootloader-support",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-timer",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-vfs-console",
+      "dependsOn": [
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-vfs"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esp-wifi",
+      "dependsOn": [
+        "COMPONENT-efuse",
+        "COMPONENT-esp-coex",
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-netif",
+        "COMPONENT-esp-phy",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-timer",
+        "COMPONENT-hal",
+        "COMPONENT-lwip",
+        "COMPONENT-nvs-flash",
+        "COMPONENT-wpa-supplicant"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esphome--micro-decoder",
+      "dependsOn": [
+        "COMPONENT-esp-http-client",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esphome--micro-flac",
+        "COMPONENT-mbedtls",
+        "COMPONENT-pthread"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esphome--micro-opus",
+      "dependsOn": [
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-esphome--noise-c",
+      "dependsOn": [
+        "COMPONENT-esphome--libsodium"
+      ]
+    },
+    {
+      "ref": "COMPONENT-espressif--esp-websocket-client",
+      "dependsOn": [
+        "COMPONENT-esp-tls",
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-timer",
+        "COMPONENT-http-parser",
+        "COMPONENT-lwip",
+        "COMPONENT-tcp-transport"
+      ]
+    },
+    {
+      "ref": "COMPONENT-espressif--mdns",
+      "dependsOn": [
+        "COMPONENT-esp-netif",
+        "COMPONENT-esp-timer",
+        "COMPONENT-lwip"
+      ]
+    },
+    {
+      "ref": "COMPONENT-freertos",
+      "dependsOn": [
+        "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+      ]
+    },
+    {
+      "ref": "COMPONENT-hal",
+      "dependsOn": [
+        "COMPONENT-esp-rom",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-heap",
+      "dependsOn": [
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-log",
+      "dependsOn": [
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-hal",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-lwip",
+      "dependsOn": [
+        "SUBPACKAGE-lwip-lwip",
+        "COMPONENT-vfs"
+      ]
+    },
+    {
+      "ref": "COMPONENT-mbedtls",
+      "dependsOn": [
+        "SUBPACKAGE-mbedtls-mbedtls",
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-esp-pm",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-newlib",
+      "dependsOn": [
+        "VIRTPACKAGE-newlib-sbom-newlibc.yml",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-nvs-flash",
+      "dependsOn": [
+        "COMPONENT-esp-partition",
+        "COMPONENT-newlib",
+        "COMPONENT-spi-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-nvs-sec-provider",
+      "dependsOn": [
+        "COMPONENT-bootloader-support",
+        "COMPONENT-efuse",
+        "COMPONENT-esp-partition",
+        "COMPONENT-nvs-flash"
+      ]
+    },
+    {
+      "ref": "COMPONENT-sdmmc",
+      "dependsOn": [
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-timer",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-sendspin--sendspin-cpp",
+      "dependsOn": [
+        "COMPONENT-esp-http-server",
+        "COMPONENT-esp-netif",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esphome--micro-flac",
+        "COMPONENT-esphome--micro-opus",
+        "COMPONENT-espressif--esp-websocket-client",
+        "COMPONENT-mbedtls",
+        "COMPONENT-pthread"
+      ]
+    },
+    {
+      "ref": "COMPONENT-spi-flash",
+      "dependsOn": [
+        "COMPONENT-app-update",
+        "COMPONENT-bootloader-support",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm",
+        "COMPONENT-hal",
+        "COMPONENT-soc"
+      ]
+    },
+    {
+      "ref": "COMPONENT-src",
+      "dependsOn": [
+        "SUBPACKAGE-src-esphome-components-w5500-link-monitor",
+        "COMPONENT-Improv",
+        "COMPONENT-app-update",
+        "COMPONENT-bootloader-support",
+        "COMPONENT-bt",
+        "COMPONENT-cxx",
+        "COMPONENT-efuse",
+        "COMPONENT-esp-tls",
+        "COMPONENT-esp-adc",
+        "COMPONENT-esp-app-format",
+        "COMPONENT-esp-coex",
+        "COMPONENT-esp-common",
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-driver-i2c",
+        "COMPONENT-esp-driver-i2s",
+        "COMPONENT-esp-driver-rmt",
+        "COMPONENT-esp-driver-spi",
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-esp-eth",
+        "COMPONENT-esp-event",
+        "COMPONENT-esp-http-client",
+        "COMPONENT-esp-hw-support",
+        "COMPONENT-esp-mm",
+        "COMPONENT-esp-netif",
+        "COMPONENT-esp-partition",
+        "COMPONENT-esp-pm",
+        "COMPONENT-esp-psram",
+        "COMPONENT-esp-ringbuf",
+        "COMPONENT-esp-rom",
+        "COMPONENT-esp-security",
+        "COMPONENT-esp-system",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-vfs-console",
+        "COMPONENT-esp-wifi",
+        "COMPONENT-esphome--esp-audio-libs",
+        "COMPONENT-esphome--libsodium",
+        "COMPONENT-esphome--micro-decoder",
+        "COMPONENT-esphome--micro-flac",
+        "COMPONENT-esphome--noise-c",
+        "COMPONENT-espressif--mdns",
+        "COMPONENT-freertos",
+        "COMPONENT-hal",
+        "COMPONENT-heap",
+        "COMPONENT-http-parser",
+        "COMPONENT-log",
+        "COMPONENT-lwip",
+        "COMPONENT-mbedtls",
+        "COMPONENT-newlib",
+        "COMPONENT-nvs-flash",
+        "COMPONENT-nvs-sec-provider",
+        "COMPONENT-pthread",
+        "COMPONENT-sendspin--sendspin-cpp",
+        "COMPONENT-soc",
+        "COMPONENT-spi-flash",
+        "COMPONENT-usb",
+        "COMPONENT-vfs",
+        "COMPONENT-wpa-supplicant",
+        "COMPONENT-xtensa"
+      ]
+    },
+    {
+      "ref": "COMPONENT-tcp-transport",
+      "dependsOn": [
+        "COMPONENT-esp-tls",
+        "COMPONENT-esp-timer",
+        "COMPONENT-lwip"
+      ]
+    },
+    {
+      "ref": "COMPONENT-touch-element",
+      "dependsOn": [
+        "COMPONENT-esp-timer"
+      ]
+    },
+    {
+      "ref": "COMPONENT-usb",
+      "dependsOn": [
+        "COMPONENT-esp-driver-gpio",
+        "COMPONENT-esp-mm"
+      ]
+    },
+    {
+      "ref": "COMPONENT-vfs",
+      "dependsOn": [
+        "COMPONENT-esp-driver-uart",
+        "COMPONENT-esp-driver-usb-serial-jtag",
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-vfs-console"
+      ]
+    },
+    {
+      "ref": "COMPONENT-wpa-supplicant",
+      "dependsOn": [
+        "COMPONENT-esp-timer",
+        "COMPONENT-esp-wifi",
+        "COMPONENT-mbedtls"
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "vex-FRAMEWORK-esp-idf-CVE-2026-81507",
+      "id": "CVE-2026-81507",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Out-of-bounds read in the BlueDroid L2CAP configuration option parsing (components/bt/host/bluedroid/stack/l2cap/l2c_main.c and l2c_utils.c). Fixed in 5.2.8, 5.3.6, 5.5.5, 6.0.3 and 6.1-rc1. release/v5.4 has the fix (5731c63ece12), so the next 5.4 release, 5.4.5, has it too. The v6.1-beta1 pre-release also reports 6.1.0, but does not have the fix. https://github.com/espressif/esp-idf/security/advisories/GHSA-v335-fxwc-rc44"
+      },
+      "affects": [
+        {
+          "ref": "FRAMEWORK-esp-idf"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-FRAMEWORK-esp-idf-CVE-2025-27840",
+      "id": "CVE-2025-27840",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "A security issue was reported concerning undocumented HCI commands in ESP32 Bluetooth controller. Espressif had earlier clarified that these vendor HCI commands are primarily used for debugging purposes and pose no real, known security threat. Technical details were shared in this https://developer.espressif.com/blog/2025/03/esp32-bluetooth-clearing-the-air/"
+      },
+      "affects": [
+        {
+          "ref": "FRAMEWORK-esp-idf"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-freertos-FreeRTOS-Kernel-CVE-2026-77234",
+      "id": "CVE-2026-77234",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "A timer command submitted by an unprivileged task is executed by the timer service task as a caller-supplied function call. Affects only MPU-enabled ports (GHSA-w3vr-pr75-5hc6). ESP-IDF ships the xtensa, riscv and linux ports only, none of which set portUSING_MPU_WRAPPERS, so the MPU wrappers and the privilege boundary they enforce are not built. Same reasoning as CVE-2024-28115, already excluded in the FreeRTOS-Kernel manifest."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-freertos-FreeRTOS-Kernel-CVE-2026-77237",
+      "id": "CVE-2026-77237",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Missing queue-set type validation in xQueueAddToSet() leading to an out-of-bounds read in privileged kernel context. Affects only MPU-enabled ports with configUSE_QUEUE_SETS=1 (GHSA-9wvc-hqvx-5wf5). ESP-IDF ships the xtensa, riscv and linux ports only, none of which set portUSING_MPU_WRAPPERS, so there is no privileged/unprivileged split for the over-read to cross."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-freertos-FreeRTOS-Kernel-CVE-2026-77235",
+      "id": "CVE-2026-77235",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Missing privilege verification in the secure context cleanup SVC handler, letting a Non-Secure task free another task's secure context (GHSA-55pf-q87x-c58c). Affects ARMv8-M ports with TrustZone and MPU only. ESP-IDF ships the xtensa, riscv and linux ports only and carries no secure_context sources, so the affected code is not present."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-freertos-FreeRTOS-Kernel-CVE-2026-77236",
+      "id": "CVE-2026-77236",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Missing minimum size validation in secure context allocation, writing the stack-overflow sentinel outside the allocated Secure-world buffer (GHSA-vq2f-9qj3-jj2m). Affects ARMv8-M ports with TrustZone only. ESP-IDF ships the xtensa, riscv and linux ports only and carries no secure_context sources, so the affected code is not present."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-freertos-FreeRTOS-Kernel-CVE-2024-28115",
+      "id": "CVE-2024-28115",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Affects only ARMv7-M MPU ports, and ARMv8-M ports with Memory Protected Unit (MPU) support enabled"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-freertos-FreeRTOS-Kernel"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-lwip-lwip-CVE-2020-22283",
+      "id": "CVE-2020-22283",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "ICMPv6 out-of-bounds read (savannah #58553) in icmp6_send_response_with_addrs_and_netif(). Fixed upstream by commits 489405839ae0 and 488d4ad2460c (lwIP 2.1.3/2.2.0), further hardened by 2bf8fcd7c240; all present as ancestors in the vendored esp-lwip fork. NVD's CPE has no fixed-version boundary (\"git head\"), causing the version match."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-lwip-lwip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-lwip-lwip-CVE-2026-87121",
+      "id": "CVE-2026-87121",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Out-of-bounds write into client->rx_buffer in mqtt_parse_incoming() of the lwIP MQTT client application (src/apps/mqtt/mqtt.c), fixed upstream by 68b2c1191886 (ICSA-26-265-01). ESP-IDF does not build src/apps/mqtt/mqtt.c. Its MQTT client is the separate ESP-MQTT component."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-lwip-lwip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-lwip-lwip-CVE-2026-15340",
+      "id": "CVE-2026-15340",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Overflow of tx_buf in smtp_prepare_auth_or_mail() of the lwIP SMTP client application (src/apps/smtp/smtp.c) when a server sends an AUTH line longer than SMTP_TX_BUF_LEN, fixed upstream by 614420f82c87 (ICSA-26-279-02). The advisory lists 2.2.1, but 2.1.3 and 2.2.0 have the same code. ESP-IDF does not build src/apps/smtp/smtp.c."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-lwip-lwip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-lwip-lwip-CVE-2026-91018",
+      "id": "CVE-2026-91018",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Double free of the input pbuf in lowpan6_input() of the lwIP 6LoWPAN netif (src/netif/lowpan6.c) when decompression of a FRAG1 fragment fails, fixed upstream by f873b6295933 (ICSA-26-265-02). ESP-IDF does not build src/netif/lowpan6.c or src/netif/lowpan6_common.c. Thread support uses the 6LoWPAN layer of OpenThread."
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-lwip-lwip"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-mbedtls-mbedtls-CVE-2025-54764",
+      "id": "CVE-2025-54764",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Fixed in 3.6.5"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-mbedtls-mbedtls"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-mbedtls-mbedtls-CVE-2025-59438",
+      "id": "CVE-2025-59438",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Fixed in 3.6.5"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-mbedtls-mbedtls"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-mbedtls-mbedtls-CVE-2025-52496",
+      "id": "CVE-2025-52496",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Fixed in 3.6.4"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-mbedtls-mbedtls"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-mbedtls-mbedtls-CVE-2025-27810",
+      "id": "CVE-2025-27810",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Fixed in 3.6.3"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-mbedtls-mbedtls"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-SUBPACKAGE-mbedtls-mbedtls-CVE-2025-66442",
+      "id": "CVE-2025-66442",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Applicable only with Clang with select-optimize feature. ESP-IDF uses gcc as the default compiler and uses -Os as the default optimisation flag"
+      },
+      "affects": [
+        {
+          "ref": "SUBPACKAGE-mbedtls-mbedtls"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-VIRTPACKAGE-newlib-sbom-newlibc.yml-CVE-2024-30949",
+      "id": "CVE-2024-30949",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "A vulnerability was discovered in the gettimeofday system call implementation within the RISC-V libgloss component of Newlib. ESP-IDF does not link against libgloss for RISC-V, hence the issue is not directly applicable. Still, the relevant fix has been patched through https://github.com/espressif/newlib-esp32/commit/047ba47013c2656a1e7838dc86cbc75aeeaa67a7"
+      },
+      "affects": [
+        {
+          "ref": "VIRTPACKAGE-newlib-sbom-newlibc.yml"
+        }
+      ]
+    },
+    {
+      "bom-ref": "vex-COMPONENT-wpa-supplicant-CVE-2023-52160",
+      "id": "CVE-2023-52160",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The relevant fix has been patched with https://github.com/espressif/esp-idf/commit/59a62f2af65945f92d475089f9ce66fce56cc737"
+      },
+      "affects": [
+        {
+          "ref": "COMPONENT-wpa-supplicant"
+        }
+      ]
+    }
+  ]
+}
