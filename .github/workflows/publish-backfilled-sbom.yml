@@ -1,0 +1,88 @@
+# Uploads the SBOMs under sbom/backfill/<version>/ next to that release's
+# published firmware. These releases were built before the pipeline made an
+# SBOM, so each was reconstructed afterwards; sbom/backfill/README.md says how
+# and how it was verified against the published firmware.
+#
+# Only the two SBOM files are written. No firmware, manifest or channel
+# pointer is touched and nothing is signed, so this runs on main: the
+# publishing role admits main and tag refs. It never creates a release folder
+# and never replaces an SBOM that is already published.
+
+name: Publish backfilled SBOMs
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release to publish (a folder under sbom/backfill), or "all"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  # Same publishing role and bucket as publish-signed-firmware.yml.
+  S3_PUBLISH_ROLE: arn:aws:iam::330564535865:role/gha-aux-2-s3
+  S3_PUBLISH_REGION: us-east-1
+  S3_BASE: s3://nc-esp32-firmware/aux-2
+  PUBLIC_BASE: https://firmware.nabucasa.com/aux-2
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check dispatch ref
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF}" != refs/heads/main ]; then
+            echo "Dispatch on main (the reviewed SBOMs live there), not '${GITHUB_REF}'" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to AWS for artifact publishing (OIDC, no keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.S3_PUBLISH_ROLE }}
+          aws-region: ${{ env.S3_PUBLISH_REGION }}
+
+      - name: Upload SBOMs next to the published firmware
+        shell: bash
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          if [ "$VERSION" = all ]; then
+            dirs=(sbom/backfill/*/)
+          else
+            dirs=("sbom/backfill/${VERSION}/")
+          fi
+
+          for dir in "${dirs[@]}"; do
+            version="$(basename "$dir")"
+            if [ ! -f "$dir/firmware-esp32s3.sbom.spdx" ] || [ ! -f "$dir/firmware-esp32s3.sbom.cdx.json" ]; then
+              echo "No backfilled SBOM for ${version}" >&2
+              exit 1
+            fi
+            # Checked over public HTTPS so the role needs no read access.
+            if ! curl -sfI -o /dev/null "${PUBLIC_BASE}/${version}/firmware-esp32s3.factory.bin"; then
+              echo "${version} has no published firmware at ${PUBLIC_BASE}/${version}/" >&2
+              exit 1
+            fi
+            if curl -sfI -o /dev/null "${PUBLIC_BASE}/${version}/firmware-esp32s3.sbom.spdx"; then
+              echo "::notice::${version} already has a published SBOM; leaving it as is"
+              continue
+            fi
+
+            echo "Uploading ${version} SBOM"
+            aws s3 cp "$dir/firmware-esp32s3.sbom.spdx" "${S3_BASE}/${version}/firmware-esp32s3.sbom.spdx" \
+              --content-type text/spdx
+            aws s3 cp "$dir/firmware-esp32s3.sbom.cdx.json" "${S3_BASE}/${version}/firmware-esp32s3.sbom.cdx.json" \
+              --content-type application/vnd.cyclonedx+json
+            echo "- \`${version}\`: ${PUBLIC_BASE}/${version}/firmware-esp32s3.sbom.spdx" >> "$GITHUB_STEP_SUMMARY"
+          done
