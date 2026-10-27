@@ -250,6 +250,13 @@ jobs:
             # SBOM (SPDX and CycloneDX) of this build, made from the same
             # build directory before the next config overwrites it.
             mkdir -p "sbom/$name"
+            # esp-idf-sbom lists NimBLE with ESP-IDF's bt component even in a
+            # Bluedroid build; the exclusions say so, and hold only while it is off.
+            if [ "$(jq -r '.BT_NIMBLE_ENABLED // false' "$build_dir/config/sdkconfig.json")" != false ]; then
+              echo "NimBLE is enabled in $config; sbom/excluded_cves.yaml no longer applies" >&2
+              exit 1
+            fi
+            cp sbom/excluded_cves.yaml "$(dirname "$build_dir")/excluded_cves.yaml"
             uvx "esp-idf-sbom==${ESP_IDF_SBOM_VERSION}" create \
               -o "sbom/$name/sbom.spdx" "$build_dir/project_description.json"
             uvx "esp-idf-sbom==${ESP_IDF_SBOM_VERSION}" create --format cyclonedx-json \
