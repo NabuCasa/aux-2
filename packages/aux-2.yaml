@@ -61,6 +61,9 @@ psram:
 external_components:
   - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
+  - source: github://esphome/esphome@dev
+    components: [serial_proxy, uart, usb_uart]
+    refresh: 1h
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
@@ -198,6 +201,9 @@ usb_uart:
     type: CDC_ACM
     vid: 0x303A
     pid: 0x4001
+    # Some ZBT-2 units share this VID/PID
+    manufacturer: Nabu Casa
+    product: ZWA-2
     # Don't claim the unused CDC notification interface — frees one of the
     # ESP32-S3's eight USB host channels so hub + ZWA-2 + CH343 fit (8/8).
     claim_comm_interface: false
@@ -205,6 +211,14 @@ usb_uart:
       - id: uch_zw
         baud_rate: 115200
         buffer_size: 1024
+  - type: CDC_ACM
+    vid: 0x303A
+    pid: 0  # Wildcard: ZBT-2 ships as both 0x4001 and 0x831A
+    manufacturer: Nabu Casa
+    product: ZBT-2
+    claim_comm_interface: false
+    channels:
+      - id: uch_zb
   # Stock WCH CH343 id — matches any CH343-based adapter, not one product;
   # the validated/supported unit is the Waveshare USB-to-RS-485 dongle
   - id: usb_uart_usb_serial
@@ -244,6 +258,14 @@ serial_proxy:
     uart_id: uch_usb_serial
     name: USB Serial Port
     port_type: RS485
+  - id: zigbee_serial_proxy
+    uart_id: uch_zb
+    name: USB Zigbee
+    port_type: USB_SERIAL
+
+##### Zigbee Proxy
+ezsp_proxy_tap:
+  serial_proxy_id: zigbee_serial_proxy
 
 ##### I2C Components
 i2c:
