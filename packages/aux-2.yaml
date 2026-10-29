@@ -7,7 +7,7 @@ esphome:
   friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.10.0
+  min_version: 2026.11.0
   project:
     name: Nabu Casa.Home Assistant Connect AUX-2
     version: ${fw_version}
@@ -61,9 +61,6 @@ psram:
 external_components:
   - source: github://NabuCasa/aux-2@main
     components: [w5500_link_monitor]
-  - source: github://esphome/esphome@dev
-    components: [serial_proxy, uart, usb_uart]
-    refresh: 1h
 
 # Restored from NVS at boot. Drives which network interface comes up via the
 # on_boot lambda above. The "Network Interface" select component updates this
@@ -211,7 +208,8 @@ usb_uart:
       - id: uch_zw
         baud_rate: 115200
         buffer_size: 1024
-  - type: CDC_ACM
+  - id: usb_uart_zb
+    type: CDC_ACM
     vid: 0x303A
     pid: 0  # Wildcard: ZBT-2 ships as both 0x4001 and 0x831A
     manufacturer: Nabu Casa
@@ -265,6 +263,7 @@ serial_proxy:
 
 ##### Zigbee Proxy
 ezsp_proxy_tap:
+  id: ezsp_proxy_tap_component
   serial_proxy_id: zigbee_serial_proxy
 
 ##### I2C Components
