@@ -24,8 +24,8 @@ esp32:
           - !secret fw_key_digest_aws
       enable_ota_downgrade_protection: true
 
-esp32_improv:
-  id: esp32_improv_component
+improv_ble:
+  id: improv_ble_component
   authorizer: none
 
 improv_serial:
