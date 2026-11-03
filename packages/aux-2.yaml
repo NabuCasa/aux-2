@@ -363,7 +363,6 @@ speaker:
 sendspin:
   id: sendspin_hub
   task_stack_in_psram: true
-  static_delay_adjustable: true
 
 audio:
   codecs:
@@ -380,6 +379,7 @@ media_source:
   - platform: sendspin
     id: sendspin_source
     task_stack_in_psram: true
+    static_delay_adjustable: true
     codecs: [flac, pcm]
     # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
 
