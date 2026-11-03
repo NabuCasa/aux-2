@@ -363,6 +363,7 @@ speaker:
 sendspin:
   id: sendspin_hub
   task_stack_in_psram: true
+  static_delay_adjustable: true
 
 audio:
   codecs:
