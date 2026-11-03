@@ -1,0 +1,56 @@
+# Compiles each config on pull requests so a broken build can't merge. No
+# credentials: the trust anchor is a placeholder and nothing is uploaded.
+
+name: Build
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # Build with the same ESPHome commit as the release workflow.
+          esphome_ref="$(sed -nE 's/^ *ESPHOME_REF: *([0-9a-f]+).*/\1/p' .github/workflows/upload-unsigned-firmware.yml)"
+          if [ -z "$esphome_ref" ]; then
+            echo "ESPHOME_REF not found in upload-unsigned-firmware.yml" >&2
+            exit 1
+          fi
+
+          # Placeholder digests; the real ones come from KMS at release time.
+          printf 'fw_key_digest_gcp: "%064d"\nfw_key_digest_aws: "%064d"\n' 0 0 > secrets.yaml
+
+          configs=()
+          for config in *.yaml; do
+            [[ "$config" == secrets.yaml ]] && continue
+            configs+=("$config")
+          done
+          if [ ${#configs[@]} -eq 0 ]; then
+            echo "No config files found."
+            exit 1
+          fi
+
+          for config in "${configs[@]}"; do
+            echo "Building $config (ESPHome ${esphome_ref})"
+            uvx --from "git+https://github.com/esphome/esphome.git@${esphome_ref}" \
+              esphome compile "$config"
+          done
