@@ -453,7 +453,7 @@ light:
     entity_category: config
     pin: 38
     chipset: ws2812
-    rgb_order: GRB
+    channel_colors: GRB
     num_leds: 1
     power_supply: led_power
     effects:
