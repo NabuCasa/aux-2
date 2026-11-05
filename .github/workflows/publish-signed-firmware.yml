@@ -14,8 +14,9 @@
 #      (Autograph never builds factory images — only the app is signed);
 #   5. extracts the app back out of the factory image and re-verifies it; and
 #   6. publishes the verified artifacts to the serving layer
-#      (firmware.nabucasa.com): permanent versioned paths plus this
-#      channel's mutable pointer manifest.
+#      (firmware.nabucasa.com): permanent versioned paths plus, for prod,
+#      the channel's mutable pointer manifest (the staging pointer is not
+#      written here).
 #
 # Never combine a signed app with boot components from a different build:
 # environment, version, commit, and boot_run_id must all refer to the same
@@ -312,6 +313,8 @@ jobs:
       # channel is a mutable pointer manifest beside them (prod ->
       # aux-2/manifest.json, staging -> aux-2/manifest-staging.json).
       # Promotion/rollback = rewriting the pointer; binaries never move.
+      # The staging pointer moves when a version is released, not on
+      # publish: a staging publish only uploads the version.
       # The flat layout assumes a single build target.
       - name: Publish artifacts and channel manifest to S3
         shell: bash
@@ -395,13 +398,12 @@ jobs:
             fi
 
             if [ "${FW_ENV}" = "prod" ]; then
-              channel_manifest="manifest.json"
+              echo "Promoting manifest.json -> ${VERSION}"
+              aws s3 cp "$out/channel-manifest.json" "$dest/manifest.json" \
+                --content-type application/json --cache-control no-cache
             else
-              channel_manifest="manifest-staging.json"
+              echo "Not moving manifest-staging.json; it moves when ${VERSION} is released"
             fi
-            echo "Promoting ${channel_manifest} -> ${VERSION}"
-            aws s3 cp "$out/channel-manifest.json" "$dest/${channel_manifest}" \
-              --content-type application/json --cache-control no-cache
           done
 
       - name: Publish summary
