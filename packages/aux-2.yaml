@@ -294,6 +294,7 @@ audio_dac:
     i2c_id: i2c_audio
     address: 0x4C   # Board straps ADR1=ADR2=0 (driver default is 0x4D)
     enable_pin: 3   # Codec_XSMT (mute)
+    bits_per_sample: 32bit  # Matches the DAC speaker's I2S slot width
 
 speaker:
   # Router speaker to allow user to select between the DAC and TOSLink outputs
@@ -302,7 +303,7 @@ speaker:
     output_speakers:
       - i2s_audio_dac_speaker
       - i2s_audio_spdif_speaker
-    bits_per_sample: 16
+    bits_per_sample: 24
     num_channels: 2
     sample_rate: 48000
 
@@ -311,7 +312,7 @@ speaker:
     id: i2s_audio_dac_speaker
     sample_rate: 48000
     i2s_dout_pin: 7
-    bits_per_sample: 16bit
+    bits_per_sample: 32bit  # 24-bit audio in 32-bit slots; 24bit would need an mclk_multiple of 384
     i2s_audio_id: i2s_bus
     dac_type: external
     channel: stereo
@@ -351,13 +352,13 @@ speaker:
     task_stack_in_psram: true
     output_speaker: announcement_mixing_input
     sample_rate: 48000
-    bits_per_sample: 16
+    bits_per_sample: 24
   - platform: resampler
     id: media_resampling_speaker
     task_stack_in_psram: true
     output_speaker: media_mixing_input
     sample_rate: 48000
-    bits_per_sample: 16
+    bits_per_sample: 24
 
 ##### Sendspin Configuration
 sendspin:
@@ -381,6 +382,7 @@ media_source:
     task_stack_in_psram: true
     static_delay_adjustable: true
     codecs: [flac, pcm]
+    bits_per_sample: 24
     # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
 
 media_player:
