@@ -55,3 +55,28 @@ jobs:
             uvx --from "git+https://github.com/esphome/esphome.git@${esphome_ref}" \
               esphome compile "$config"
           done
+
+  # What "take control" produces must build with the latest ESPHome release.
+  build-adopted:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build the adopted configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Mirrors the config the ESPHome Device Builder writes on adoption.
+          cat > adopted-test.yaml <<'EOF'
+          packages:
+            aux_2: !include packages/aux-2.yaml
+          wifi:
+            ssid: test-ssid
+            password: test-password
+          EOF
+          uvx esphome version
+          uvx esphome compile adopted-test.yaml
