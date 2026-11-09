@@ -24,6 +24,18 @@ esp32:
           - !secret fw_key_digest_aws
       enable_ota_downgrade_protection: true
 
+# Need ESPHome changes not yet in a release, so adopted configs leave them out;
+# move each to aux-2.yaml once a release has it.
+# Zigbee proxy: esphome/esphome#20304
+ezsp_proxy_tap:
+  id: ezsp_proxy_tap_component
+  serial_proxy_id: zigbee_serial_proxy
+
+# 24-bit Sendspin: esphome/esphome#22313
+media_source:
+  - id: !extend sendspin_source
+    bits_per_sample: 24
+
 improv_ble:
   id: improv_ble_component
   authorizer: none

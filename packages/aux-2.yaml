@@ -7,7 +7,7 @@ esphome:
   friendly_name: Home Assistant Connect AUX-2
   name: connect-aux-2
   name_add_mac_suffix: true
-  min_version: 2026.11.0
+  min_version: 2026.10.2
   project:
     name: Nabu Casa.Home Assistant Connect AUX-2
     version: ${fw_version}
@@ -261,11 +261,6 @@ serial_proxy:
     name: USB Zigbee
     port_type: USB_SERIAL
 
-##### Zigbee Proxy
-ezsp_proxy_tap:
-  id: ezsp_proxy_tap_component
-  serial_proxy_id: zigbee_serial_proxy
-
 ##### I2C Components
 i2c:
   # Audio codec
@@ -382,7 +377,6 @@ media_source:
     task_stack_in_psram: true
     static_delay_adjustable: true
     codecs: [flac, pcm]
-    bits_per_sample: 24
     # decode_memory: internal # Unnecessary on an ESP32-S3; uses more internal memory
 
 media_player:
