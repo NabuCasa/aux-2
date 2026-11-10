@@ -1,6 +1,7 @@
 # Maker and security contact for the firmware's SBOM. Factory firmware only:
 # an adopted config is built by its owner, so Nabu Casa is not its supplier.
 esphome:
+  min_version: 2026.11.0
   project:
     sbom:
       supplier: Nabu Casa, Inc.
