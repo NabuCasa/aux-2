@@ -1,5 +1,5 @@
 # Compiles each config on pull requests so a broken build can't merge. No
-# credentials: the trust anchor is a placeholder and nothing is uploaded.
+# credentials: the trust anchor is the prod default and nothing is uploaded.
 
 name: Build
 
@@ -36,13 +36,8 @@ jobs:
             exit 1
           fi
 
-          # Placeholder digests (must differ); the real ones come from KMS at release time.
-          printf 'fw_key_digest_gcp: "%s"\nfw_key_digest_aws: "%s"\n' \
-            "$(printf '0%.0s' {1..64})" "$(printf '1%.0s' {1..64})" > secrets.yaml
-
           configs=()
           for config in *.yaml; do
-            [[ "$config" == secrets.yaml ]] && continue
             configs+=("$config")
           done
           if [ ${#configs[@]} -eq 0 ]; then

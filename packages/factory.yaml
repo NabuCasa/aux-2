@@ -1,7 +1,10 @@
-# Update channel: CI sets FW_CHANNEL_MANIFEST (manifest.json on prod/tag
-# builds); the default keeps local and staging builds on the staging channel.
+# Defaults are the production channel and signing keys; CI overrides them for
+# staging builds (upload-unsigned-firmware.yml).
 substitutions:
-  fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest-staging.json
+  fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest.json
+  # Secure Boot v2 digests of the signing keys' public halves (not secrets)
+  fw_key_digest_gcp: !env_var FW_KEY_DIGEST_GCP bc8993d36a37bff5c8f90924ddccd750a73f76beb19af5b4a44b64bfcbde4608
+  fw_key_digest_aws: !env_var FW_KEY_DIGEST_AWS 96113dbd9e9771bfa5389abc08a6ab9fb992cc70401fc73ca3294aeb5c3c4922
 
 # Maker and security contact for the firmware's SBOM. Factory firmware only:
 # an adopted config is built by its owner, so Nabu Casa is not its supplier.
@@ -15,13 +18,13 @@ esphome:
 esp32:
   framework:
     advanced:
-      # Compiled-in OTA trust anchor; key digests are derived from KMS and
-      # written to secrets.yaml at build time (upload-unsigned-firmware.yml).
+      # Compiled-in OTA trust anchor; CI derives the digests from KMS and
+      # fails a build whose keys don't match.
       signed_ota_verification:
         signing_scheme: rsa3072
         verification_keys:
-          - !secret fw_key_digest_gcp
-          - !secret fw_key_digest_aws
+          - ${fw_key_digest_gcp}
+          - ${fw_key_digest_aws}
       enable_ota_downgrade_protection: true
 
 # Need ESPHome changes not yet in a release, so adopted configs leave them out;
@@ -31,7 +34,11 @@ ezsp_proxy_tap:
   id: ezsp_proxy_tap_component
   serial_proxy_id: zigbee_serial_proxy
 
-# 24-bit Sendspin: esphome/esphome#22313
+# 24-bit Sendspin: esphome/esphome#22313, pulled in so release builds have it
+external_components:
+  - source: github://pr#22313
+    components: [sendspin]
+
 media_source:
   - id: !extend sendspin_source
     bits_per_sample: 24
