@@ -134,11 +134,9 @@ jobs:
       # Derive the firmware's OTA trust anchor from the live signing keys: fetch
       # each public half, verify it against its DER-SHA256 pin, then reduce it to
       # the Secure Boot v2 block-format digest the device matches per signature
-      # block. The configs read these via !secret; ESPHome resolves
-      # secrets.yaml from the config directory, which is the repo root
-      # here. secrets.yaml is excluded from the config globs below (not a device
-      # config) and gitignored.
-      - name: Fetch signing keys and write the trust anchor (secrets.yaml)
+      # block. connect-aux-2.yaml includes packages/trust-anchor.yaml, a
+      # placeholder this step overwrites, so only these builds carry our keys.
+      - name: Fetch signing keys and write the trust anchor (trust-anchor.yaml)
         shell: bash
         run: |
           set -euo pipefail
@@ -178,9 +176,17 @@ jobs:
           gcp_digest=$(od -An -v -tx1 gcp_digest.bin | tr -d ' \n')
           aws_digest=$(od -An -v -tx1 aws_digest.bin | tr -d ' \n')
 
-          cat > secrets.yaml <<EOF
-          fw_key_digest_gcp: "${gcp_digest}"
-          fw_key_digest_aws: "${aws_digest}"
+          # Downgrade protection needs signed OTA verification, so both live here.
+          cat > packages/trust-anchor.yaml <<EOF
+          esp32:
+            framework:
+              advanced:
+                signed_ota_verification:
+                  signing_scheme: rsa3072
+                  verification_keys:
+                    - "${gcp_digest}"
+                    - "${aws_digest}"
+                enable_ota_downgrade_protection: true
           EOF
           echo "Trust anchor: gcp=${gcp_digest} aws=${aws_digest}"
 
@@ -198,8 +204,6 @@ jobs:
 
           configs=()
           for config in *.yaml; do
-            # secrets.yaml holds the trust anchor, not a device config.
-            [[ "$config" == secrets.yaml ]] && continue
             configs+=("$config")
           done
           if [ ${#configs[@]} -eq 0 ]; then
@@ -278,7 +282,6 @@ jobs:
           shopt -s nullglob
 
           for config in *.yaml; do
-            [[ "$config" == secrets.yaml ]] && continue
             name="$(basename "${config%.*}")"
 
             # The signable artifact is the sector-padded unsigned APP image
@@ -402,8 +405,7 @@ jobs:
             echo "## Unsigned firmware uploaded (${FW_ENV})"
             echo ""
             for config in *.yaml; do
-              [[ "$config" == secrets.yaml ]] && continue
-              name="$(basename "${config%.*}")"
+                name="$(basename "${config%.*}")"
               echo "- \`gs://${BUCKET}/${name}/${FW_VERSION}/${GITHUB_SHA}/\`"
             done
             echo ""

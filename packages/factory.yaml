@@ -1,7 +1,7 @@
-# Update channel: CI sets FW_CHANNEL_MANIFEST (manifest.json on prod/tag
-# builds); the default keeps local and staging builds on the staging channel.
+# Update channel: defaults to production; CI sets FW_CHANNEL_MANIFEST to the
+# staging channel for staging builds (upload-unsigned-firmware.yml).
 substitutions:
-  fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest-staging.json
+  fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest.json
 
 # Maker and security contact for the firmware's SBOM. Factory firmware only:
 # an adopted config is built by its owner, so Nabu Casa is not its supplier.
@@ -12,18 +12,6 @@ esphome:
       contact: security@nabucasa.com
       url: https://www.nabucasa.com
 
-esp32:
-  framework:
-    advanced:
-      # Compiled-in OTA trust anchor; key digests are derived from KMS and
-      # written to secrets.yaml at build time (upload-unsigned-firmware.yml).
-      signed_ota_verification:
-        signing_scheme: rsa3072
-        verification_keys:
-          - !secret fw_key_digest_gcp
-          - !secret fw_key_digest_aws
-      enable_ota_downgrade_protection: true
-
 # Need ESPHome changes not yet in a release, so adopted configs leave them out;
 # move each to aux-2.yaml once a release has it.
 # Zigbee proxy: esphome/esphome#20304
@@ -31,7 +19,11 @@ ezsp_proxy_tap:
   id: ezsp_proxy_tap_component
   serial_proxy_id: zigbee_serial_proxy
 
-# 24-bit Sendspin: esphome/esphome#22313
+# 24-bit Sendspin: esphome/esphome#22313, pulled in so release builds have it
+external_components:
+  - source: github://pr#22313
+    components: [sendspin]
+
 media_source:
   - id: !extend sendspin_source
     bits_per_sample: 24
