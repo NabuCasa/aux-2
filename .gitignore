@@ -137,5 +137,5 @@ sdkconfig.*
 
 .tests/
 
-# ESPHome secrets — generated in CI (trust-anchor digests), never committed
+# ESPHome secrets, never committed
 secrets.yaml

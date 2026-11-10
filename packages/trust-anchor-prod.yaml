@@ -1,0 +1,19 @@
+# OTA trust anchor: only firmware signed by one of these keys is accepted, and
+# downgrades are refused (downgrade protection requires signed OTA verification).
+# Production environment (FW_ENV=prod, the default). The digests are the Secure
+# Boot v2 block-format SHA-256 of the two production signing keys (GCP KMS and
+# AWS KMS public halves); CI re-derives them from KMS and fails on a mismatch.
+
+# Update channel: firmware polls the channel signed with these keys.
+substitutions:
+  fw_channel_manifest: manifest.json
+
+esp32:
+  framework:
+    advanced:
+      signed_ota_verification:
+        signing_scheme: rsa3072
+        verification_keys:
+          - "bc8993d36a37bff5c8f90924ddccd750a73f76beb19af5b4a44b64bfcbde4608"
+          - "96113dbd9e9771bfa5389abc08a6ab9fb992cc70401fc73ca3294aeb5c3c4922"
+      enable_ota_downgrade_protection: true

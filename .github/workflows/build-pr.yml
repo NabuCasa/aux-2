@@ -1,5 +1,6 @@
 # Compiles each config on pull requests so a broken build can't merge. No
-# credentials: the trust anchor uses placeholder digests and nothing is uploaded.
+# credentials: the placeholder-digest trust anchor (FW_ENV=pr) is used and
+# nothing is uploaded.
 
 name: Build
 
@@ -16,6 +17,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Selects packages/trust-anchor-pr.yaml (placeholder digests).
+      FW_ENV: pr
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,19 +39,6 @@ jobs:
             echo "ESPHOME_REF not found in upload-unsigned-firmware.yml" >&2
             exit 1
           fi
-
-          # Placeholder digests (must differ), so the signed configuration still builds.
-          cat > packages/trust-anchor.yaml <<EOF
-          esp32:
-            framework:
-              advanced:
-                signed_ota_verification:
-                  signing_scheme: rsa3072
-                  verification_keys:
-                    - "$(printf '0%.0s' {1..64})"
-                    - "$(printf '1%.0s' {1..64})"
-                enable_ota_downgrade_protection: true
-          EOF
 
           configs=()
           for config in *.yaml; do

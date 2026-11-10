@@ -1,8 +1,3 @@
-# Update channel: defaults to production; CI sets FW_CHANNEL_MANIFEST to the
-# staging channel for staging builds (upload-unsigned-firmware.yml).
-substitutions:
-  fw_channel_manifest: !env_var FW_CHANNEL_MANIFEST manifest.json
-
 # Maker and security contact for the firmware's SBOM. Factory firmware only:
 # an adopted config is built by its owner, so Nabu Casa is not its supplier.
 esphome:
