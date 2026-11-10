@@ -134,9 +134,9 @@ jobs:
       # Derive the firmware's OTA trust anchor from the live signing keys: fetch
       # each public half, verify it against its DER-SHA256 pin, then reduce it to
       # the Secure Boot v2 block-format digest the device matches per signature
-      # block. The configs read these via !env_var; their defaults are the prod
-      # digests, so a prod build fails if KMS no longer matches them.
-      - name: Fetch signing keys and derive the trust anchor
+      # block. connect-aux-2.yaml includes packages/trust-anchor.yaml, a
+      # placeholder this step overwrites, so only these builds carry our keys.
+      - name: Fetch signing keys and write the trust anchor (trust-anchor.yaml)
         shell: bash
         run: |
           set -euo pipefail
@@ -176,21 +176,18 @@ jobs:
           gcp_digest=$(od -An -v -tx1 gcp_digest.bin | tr -d ' \n')
           aws_digest=$(od -An -v -tx1 aws_digest.bin | tr -d ' \n')
 
-          if [ "${FW_ENV}" = "prod" ]; then
-            for k in gcp aws; do
-              want="$(sed -nE "s/^ *fw_key_digest_${k}: !env_var [A-Z_]+ ([0-9a-f]{64}).*/\1/p" packages/factory.yaml)"
-              got="${k}_digest"
-              if [ "$want" != "${!got}" ]; then
-                echo "packages/factory.yaml default fw_key_digest_${k} (${want}) doesn't match KMS (${!got})" >&2
-                exit 1
-              fi
-            done
-          fi
-
-          {
-            echo "FW_KEY_DIGEST_GCP=${gcp_digest}"
-            echo "FW_KEY_DIGEST_AWS=${aws_digest}"
-          } >> "$GITHUB_ENV"
+          # Downgrade protection needs signed OTA verification, so both live here.
+          cat > packages/trust-anchor.yaml <<EOF
+          esp32:
+            framework:
+              advanced:
+                signed_ota_verification:
+                  signing_scheme: rsa3072
+                  verification_keys:
+                    - "${gcp_digest}"
+                    - "${aws_digest}"
+                enable_ota_downgrade_protection: true
+          EOF
           echo "Trust anchor: gcp=${gcp_digest} aws=${aws_digest}"
 
       - name: Build firmware
@@ -198,8 +195,7 @@ jobs:
         env:
           # Resolved by the configs themselves (!env_var): FW_VERSION stamps
           # esphome.project.version; FW_CHANNEL_MANIFEST picks the update
-          # channel the firmware polls on firmware.nabucasa.com; the trust
-          # anchor's FW_KEY_DIGEST_* come from the step above.
+          # channel the firmware polls on firmware.nabucasa.com.
           FW_VERSION: ${{ steps.version.outputs.version }}
           FW_CHANNEL_MANIFEST: ${{ startsWith(github.ref, 'refs/tags/') && 'manifest.json' || 'manifest-staging.json' }}
         run: |
