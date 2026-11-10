@@ -1,4 +1,0 @@
-# Placeholder. Official builds replace this file with the OTA trust anchor
-# derived from the signing keys in KMS: signed OTA verification plus downgrade
-# protection (upload-unsigned-firmware.yml). Other builds don't have our keys.
-substitutions: {}
