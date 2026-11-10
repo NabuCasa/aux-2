@@ -131,12 +131,12 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Derive the firmware's OTA trust anchor from the live signing keys: fetch
-      # each public half, verify it against its DER-SHA256 pin, then reduce it to
-      # the Secure Boot v2 block-format digest the device matches per signature
-      # block. connect-aux-2.yaml includes packages/trust-anchor.yaml, a
-      # placeholder this step overwrites, so only these builds carry our keys.
-      - name: Fetch signing keys and write the trust anchor (trust-anchor.yaml)
+      # The OTA trust anchor is committed per environment in
+      # packages/trust-anchor-<env>.yaml, which connect-aux-2.yaml selects through
+      # FW_ENV. Fetch each live signing key, verify it against its DER-SHA256 pin,
+      # reduce it to the Secure Boot v2 block-format digest the device matches per
+      # signature block, and fail if the committed file doesn't list exactly those.
+      - name: Fetch signing keys and verify the committed trust anchor
         shell: bash
         run: |
           set -euo pipefail
@@ -176,24 +176,24 @@ jobs:
           gcp_digest=$(od -An -v -tx1 gcp_digest.bin | tr -d ' \n')
           aws_digest=$(od -An -v -tx1 aws_digest.bin | tr -d ' \n')
 
-          # Downgrade protection needs signed OTA verification, so both live here.
-          cat > packages/trust-anchor.yaml <<EOF
-          esp32:
-            framework:
-              advanced:
-                signed_ota_verification:
-                  signing_scheme: rsa3072
-                  verification_keys:
-                    - "${gcp_digest}"
-                    - "${aws_digest}"
-                enable_ota_downgrade_protection: true
-          EOF
-          echo "Trust anchor: gcp=${gcp_digest} aws=${aws_digest}"
+          anchor="packages/trust-anchor-${FW_ENV}.yaml"
+          for digest in "${gcp_digest}" "${aws_digest}"; do
+            if ! grep -q "\"${digest}\"" "$anchor"; then
+              echo "::error::${anchor} does not list KMS key digest ${digest}" >&2
+              exit 1
+            fi
+          done
+          if [ "$(grep -cE '^ +- "[0-9a-f]{64}"' "$anchor")" != 2 ]; then
+            echo "::error::${anchor} must list exactly the GCP and AWS key digests" >&2
+            exit 1
+          fi
+          echo "Trust anchor ${anchor} matches KMS: gcp=${gcp_digest} aws=${aws_digest}"
 
       - name: Build firmware
         shell: bash
         env:
-          # Resolved by the configs themselves (!env_var): FW_VERSION stamps
+          # Resolved by the configs themselves (!env_var): FW_ENV picks the
+          # trust anchor file (already set for the whole job); FW_VERSION stamps
           # esphome.project.version; FW_CHANNEL_MANIFEST picks the update
           # channel the firmware polls on firmware.nabucasa.com.
           FW_VERSION: ${{ steps.version.outputs.version }}

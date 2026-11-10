@@ -1,0 +1,14 @@
+# OTA trust anchor: only firmware signed by one of these keys is accepted, and
+# downgrades are refused (downgrade protection requires signed OTA verification).
+# Staging environment (FW_ENV=staging). The digests are the Secure Boot v2
+# block-format SHA-256 of the two staging signing keys (GCP KMS and AWS KMS public
+# halves); CI re-derives them from KMS and fails on a mismatch.
+esp32:
+  framework:
+    advanced:
+      signed_ota_verification:
+        signing_scheme: rsa3072
+        verification_keys:
+          - "820793b187d4473cc93150d5ecdf5dc6d4ae5af3ca299cc44689bfe4f8ffc37c"
+          - "3b7223df9a6df848d772556c26a3fb0e69d25932370685b34b417c7ca75573ab"
+      enable_ota_downgrade_protection: true

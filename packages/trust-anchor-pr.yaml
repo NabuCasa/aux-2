@@ -1,0 +1,13 @@
+# OTA trust anchor: only firmware signed by one of these keys is accepted, and
+# downgrades are refused (downgrade protection requires signed OTA verification).
+# Pull request environment (FW_ENV=pr). PR builds are compile checks only: they
+# sign and upload nothing, so the digests are placeholders (they must differ).
+esp32:
+  framework:
+    advanced:
+      signed_ota_verification:
+        signing_scheme: rsa3072
+        verification_keys:
+          - "0000000000000000000000000000000000000000000000000000000000000000"
+          - "1111111111111111111111111111111111111111111111111111111111111111"
+      enable_ota_downgrade_protection: true
