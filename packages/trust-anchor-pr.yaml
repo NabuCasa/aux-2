@@ -2,6 +2,11 @@
 # downgrades are refused (downgrade protection requires signed OTA verification).
 # Pull request environment (FW_ENV=pr). PR builds are compile checks only: they
 # sign and upload nothing, so the digests are placeholders (they must differ).
+
+# Update channel: firmware polls the channel signed with these keys.
+substitutions:
+  fw_channel_manifest: manifest-staging.json
+
 esp32:
   framework:
     advanced:

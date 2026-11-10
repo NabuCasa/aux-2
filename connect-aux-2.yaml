@@ -4,7 +4,8 @@
 packages:
   core: !include packages/aux-2.yaml
   factory: !include packages/factory.yaml
-  # Build environment (prod or staging) picks the OTA trust anchor; CI sets FW_ENV.
+  # Build environment (prod, staging or pr) picks the OTA trust anchor and
+  # update channel; CI sets FW_ENV.
   trust_anchor: !include packages/trust-anchor-${fw_env}.yaml
 
 # ewt-gen reads the device name from this file only (packages are not

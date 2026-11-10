@@ -3,6 +3,11 @@
 # Production environment (FW_ENV=prod, the default). The digests are the Secure
 # Boot v2 block-format SHA-256 of the two production signing keys (GCP KMS and
 # AWS KMS public halves); CI re-derives them from KMS and fails on a mismatch.
+
+# Update channel: firmware polls the channel signed with these keys.
+substitutions:
+  fw_channel_manifest: manifest.json
+
 esp32:
   framework:
     advanced:

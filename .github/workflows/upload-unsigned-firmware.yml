@@ -7,9 +7,9 @@
 # Environment routing: pushes to main (and manual dispatches) build for
 # STAGING; pushing a CalVer version tag (e.g. 2026.8.0) builds for
 # PRODUCTION. The environment decides the Autograph instance
-# (project/bucket/WIF) and the firmware.nabucasa.com channel manifest baked
-# into the compiled update component (FW_CHANNEL_MANIFEST) — prod and
-# staging firmware trust different signing keys and must never mix channels.
+# (project/bucket/WIF) and, through FW_ENV, the trust anchor and channel
+# manifest baked into the firmware — prod and staging firmware trust different
+# signing keys and must never mix channels.
 #
 # This workflow publishes nothing: signing and publishing happen after
 # human approval, and nothing built here is signed yet.
@@ -192,12 +192,10 @@ jobs:
       - name: Build firmware
         shell: bash
         env:
-          # Resolved by the configs themselves (!env_var): FW_ENV picks the
-          # trust anchor file (already set for the whole job); FW_VERSION stamps
-          # esphome.project.version; FW_CHANNEL_MANIFEST picks the update
-          # channel the firmware polls on firmware.nabucasa.com.
+          # Resolved by the configs themselves (!env_var): FW_ENV (set for the
+          # whole job) picks the trust anchor and update channel; FW_VERSION
+          # stamps esphome.project.version.
           FW_VERSION: ${{ steps.version.outputs.version }}
-          FW_CHANNEL_MANIFEST: ${{ startsWith(github.ref, 'refs/tags/') && 'manifest.json' || 'manifest-staging.json' }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -215,7 +213,7 @@ jobs:
           for config in "${configs[@]}"; do
             name="$(basename "${config%.*}")"
 
-            echo "Building $config (${FW_CHANNEL_MANIFEST})"
+            echo "Building $config (${FW_ENV})"
             uvx --from "git+https://github.com/esphome/esphome.git@${ESPHOME_REF}" \
               esphome compile "$config"
 
