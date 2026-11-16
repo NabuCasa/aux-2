@@ -34,6 +34,16 @@ esphome:
             else:
               - ethernet.enable:
               - script.execute: eth_boot_connect_check
+    # The Bluetooth switch restores before esp32_ble is set up, and esp32_ble
+    # then queues its own enable on boot. Right after BLE setup, cancel that
+    # queued enable if the switch was left off, so the stack never comes up.
+    - priority: 300
+      then:
+        - if:
+            condition:
+              switch.is_off: bluetooth_switch
+            then:
+              - ble.disable:
 
 esp32:
   board: esp32-s3-devkitc-1
