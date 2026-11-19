@@ -58,12 +58,10 @@ env:
   ESPHOME_VERSION: "2026.11.0"
   # Builds the SBOM from the manifests ESPHome writes into each build.
   ESP_IDF_SBOM_VERSION: "1.4.0"
-  # The firmware's OTA trust anchor is derived at build time from the signing
-  # keys' public halves: each is fetched from KMS, verified against the
-  # DER-SHA256 pin below, then reduced to its Secure Boot v2 block-format digest
-  # and compiled in. So nothing but the (git-reviewed) fingerprint pins lives in
-  # the repo, and a key rotation flows in from KMS with no variable to update.
-  # These mirror the pins in publish-signed-firmware.yml; prod and staging sign
+  # The firmware's OTA trust anchor is committed in packages/trust-anchor-<env>.yaml.
+  # The build fetches each signing key's public half from KMS, verifies it
+  # against the DER-SHA256 pin below, and fails unless its Secure Boot v2 digest
+  # matches the committed anchor. These mirror the pins in publish-signed-firmware.yml; prod and staging sign
   # with different keys. GCP fetch needs roles/cloudkms.publicKeyViewer; AWS
   # fetch assumes an OIDC role with kms:GetPublicKey only — both must admit this
   # workflow's token (ref-based subject: main for staging, the tag for prod).
