@@ -15,11 +15,6 @@ ezsp_proxy_tap:
   id: ezsp_proxy_tap_component
   serial_proxy_id: zigbee_serial_proxy
 
-# 24-bit Sendspin: esphome/esphome#22313, pulled in so release builds have it
-external_components:
-  - source: github://pr#22313
-    components: [sendspin]
-
 media_source:
   - id: !extend sendspin_source
     bits_per_sample: 24

@@ -33,10 +33,10 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          # Build with the same ESPHome commit as the release workflow.
-          esphome_ref="$(sed -nE 's/^ *ESPHOME_REF: *([0-9a-f]+).*/\1/p' .github/workflows/upload-unsigned-firmware.yml)"
-          if [ -z "$esphome_ref" ]; then
-            echo "ESPHOME_REF not found in upload-unsigned-firmware.yml" >&2
+          # Build with the same ESPHome release as the release workflow.
+          esphome_version="$(sed -nE 's/^ *ESPHOME_VERSION: *"?([0-9a-z.]+)"?.*/\1/p' .github/workflows/upload-unsigned-firmware.yml)"
+          if [ -z "$esphome_version" ]; then
+            echo "ESPHOME_VERSION not found in upload-unsigned-firmware.yml" >&2
             exit 1
           fi
 
@@ -50,9 +50,8 @@ jobs:
           fi
 
           for config in "${configs[@]}"; do
-            echo "Building $config (ESPHome ${esphome_ref})"
-            uvx --from "git+https://github.com/esphome/esphome.git@${esphome_ref}" \
-              esphome compile "$config"
+            echo "Building $config (ESPHome ${esphome_version})"
+            uvx --from "esphome==${esphome_version}" esphome compile "$config"
           done
 
   # What "take control" produces must build with the latest ESPHome release.
